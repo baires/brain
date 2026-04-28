@@ -27,19 +27,21 @@ def test_unknown_provider_raises_provider_error():
     assert "nonexistent" in str(exc_info.value)
 
 
-def test_litellm_without_dep_raises_provider_error(monkeypatch):
+def test_litellm_without_dep_raises_provider_error_on_use(monkeypatch):
     import sys
     monkeypatch.setitem(sys.modules, "litellm", None)
     cfg = BrainConfig(provider="litellm")
+    provider = get_provider(cfg)
     with pytest.raises(ProviderError) as exc_info:
-        get_provider(cfg)
+        provider.embed("test", model="openai/text-embedding-3-small")
     assert "litellm" in str(exc_info.value).lower()
 
 
-def test_openai_compat_without_dep_raises_provider_error(monkeypatch):
+def test_openai_compat_without_dep_raises_provider_error_on_use(monkeypatch):
     import sys
     monkeypatch.setitem(sys.modules, "openai", None)
     cfg = BrainConfig(provider="openai_compat")
+    provider = get_provider(cfg)
     with pytest.raises(ProviderError) as exc_info:
-        get_provider(cfg)
+        provider.embed("test", model="text-embedding-3-small")
     assert "openai" in str(exc_info.value).lower()

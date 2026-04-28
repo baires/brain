@@ -25,6 +25,11 @@ dependencies = [
     "fpdf2",
 ]
 
+[project.optional-dependencies]
+litellm = ["litellm"]
+openai = ["openai"]
+all = ["litellm", "openai"]
+
 [dependency-groups]
 dev = [
     "pytest",
