@@ -39,6 +39,7 @@ def run_eval(path: str, run_ollama: bool = False) -> None:
         max_best_distance=cfg.retrieval_max_best_distance,
         relative_distance_margin=cfg.retrieval_relative_distance_margin,
         system_prompt=cfg.agent.system_prompt,
+        query_expansion=cfg.retrieval_query_expansion,
     )
 
     failures = []

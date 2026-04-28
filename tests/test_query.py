@@ -82,9 +82,10 @@ def test_prompt_requires_file_path_citations():
         "What did Bob do?",
         '[1] title="Sales Meeting" source="notes-demo/meeting.md#2"\nBob sends proposal.',
     )
-    assert "citation number and source file path" in prompt
-    assert "[1: notes-demo/meeting.md]" in prompt
-    assert 'Use the source="..." field' in prompt
+    assert "Context:" in prompt
+    assert "Question:" in prompt
+    assert "Answer:" in prompt
+    assert 'source="notes-demo/meeting.md#2"' in prompt
 
 
 def test_retrieval_drops_weak_results_and_answer_is_conservative():

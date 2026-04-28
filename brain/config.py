@@ -30,6 +30,7 @@ class BrainConfig(BaseModel):
     retrieval_max_context_chars: int = 12000
     retrieval_max_best_distance: float = 500.0
     retrieval_relative_distance_margin: float = 0.8
+    retrieval_query_expansion: bool = False
     backup_path: str = Field(default_factory=lambda: str(Path.home() / ".brain" / "backups"))
     backup_retention: int = 30
     backup_daily: bool = True

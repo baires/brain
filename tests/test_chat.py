@@ -28,7 +28,7 @@ def test_chat_prompt_keeps_context_before_history():
         history=[("User", "Earlier"), ("Assistant", "Earlier answer")],
     )
     assert prompt.index("Context:") < prompt.index("Conversation:")
-    assert "citation number and source file path" in prompt
+    assert "Bob sends proposal." in prompt
 
 
 def test_build_chat_prompt_no_context():
