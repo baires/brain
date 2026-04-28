@@ -20,11 +20,8 @@ brain ask "what did we discuss in the sales meeting yesterday?"
 Installs `brain` onto your PATH so you can run it from anywhere.
 
 ```bash
-# Clone or copy this directory
-cd brain
-
-# Install globally as a uv tool
-uv tool install .
+# Install globally as a uv tool from the public repo
+uv tool install git+https://github.com/baires/brain.git
 
 # Pull the models
 ollama pull gemma4:e4b
