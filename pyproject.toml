@@ -21,6 +21,8 @@ dependencies = [
     "cryptography",
     "keyring",
     "tomli-w>=1.2.0",
+    "croniter",
+    "fpdf2",
 ]
 
 [dependency-groups]

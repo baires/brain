@@ -4,6 +4,7 @@ from brain.commands.add import run_add
 from brain.commands.ask import run_ask
 from brain.commands.backup import run_backup
 from brain.commands.chat import run_chat
+from brain.commands.do import run_do
 from brain.commands.eval import run_eval
 from brain.commands.import_raw import run_import_raw
 from brain.commands.init import run_init
@@ -12,10 +13,12 @@ from brain.commands.status import run_status
 from brain.commands.sync_s3 import run_sync_s3
 from brain.commands.watch import run_watch
 from brain.remote import get_remote
+from brain.routines.cli import routine_app
 
 app = typer.Typer(help="Offline second brain CLI")
 remote_app = typer.Typer(help="Manage sync remotes")
 app.add_typer(remote_app, name="remote")
+app.add_typer(routine_app, name="routine")
 
 
 def _maybe_auto_backup() -> None:
@@ -165,6 +168,15 @@ def backup(
     restore: str | None = typer.Option(None, "--restore", help="Restore from a backup file"),
 ) -> None:
     run_backup(list_flag=list_flag, restore_path=restore)
+
+
+@app.command()
+def do(
+    instruction: str = typer.Argument(
+        ..., help="What to do, e.g. 'send yesterday meetings to slack'"
+    ),
+) -> None:
+    run_do(instruction)
 
 
 if __name__ == "__main__":

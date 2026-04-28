@@ -44,15 +44,13 @@ def test_watch_detects_new_file():
             # Create a markdown file in the watched directory
             md_path = os.path.join(tmpdir, "note.md")
             with open(md_path, "w") as f:
-                f.write(
-                    """---
+                f.write("""---
 title: Watch Test
 date: 2026-04-26
 type: note
 ---
 This is a watched note.
-"""
-                )
+""")
 
             # Run watch for a very short time by triggering manually
             # Since watch is a long-running process, we'll call the handler directly

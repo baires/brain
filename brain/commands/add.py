@@ -4,6 +4,7 @@ from brain.config import BrainConfig
 from brain.ingest import ingest_document
 from brain.ollama import OllamaClient
 from brain.parser import ParseError, parse_document
+from brain.routines.events import emit
 from brain.store import BrainStore
 
 
@@ -53,3 +54,4 @@ def run_add(path: str) -> None:
         print(f"Ingested {fpath} ({chunk_count} chunks)")
 
     print(f"Done. Ingested {ingested}/{len(files)} files.")
+    emit("on_ingest", files_added=ingested, total_files=len(files))

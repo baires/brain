@@ -57,15 +57,13 @@ def test_add_ingests_markdown():
     with tempfile.TemporaryDirectory() as tmpdir:
         md_path = os.path.join(tmpdir, "note.md")
         with open(md_path, "w") as f:
-            f.write(
-                """---
+            f.write("""---
 title: Test Note
 date: 2026-04-26
 type: note
 ---
 This is a test note.
-"""
-            )
+""")
         from pathlib import Path
 
         import brain.commands.init as init_mod
@@ -302,25 +300,21 @@ def test_ask_last_filter_and_show_context():
             old_path = os.path.join(tmpdir, "old.md")
             recent_path = os.path.join(tmpdir, "recent.md")
             with open(old_path, "w") as f:
-                f.write(
-                    """---
+                f.write("""---
 title: Old Meeting
 date: 2026-01-01
 type: meeting
 ---
 Old meeting note.
-"""
-                )
+""")
             with open(recent_path, "w") as f:
-                f.write(
-                    """---
+                f.write("""---
 title: Recent Meeting
 date: 2026-04-26
 type: meeting
 ---
 Recent meeting note.
-"""
-                )
+""")
             assert runner.invoke(app, ["add", tmpdir]).exit_code == 0
             result = runner.invoke(
                 app, ["ask", "meeting?", "--type", "meeting", "--last", "7", "--show-context"]

@@ -63,8 +63,7 @@ def test_integration_add_then_ask():
 
             md_path = os.path.join(tmpdir, "meeting.md")
             with open(md_path, "w") as f:
-                f.write(
-                    """---
+                f.write("""---
 title: Sprint Planning
 date: 2026-04-26
 type: meeting
@@ -73,8 +72,7 @@ type: meeting
 
 - fix the login bug
 - update API docs
-"""
-                )
+""")
 
             result = runner.invoke(app, ["add", md_path])
             assert result.exit_code == 0, result.output

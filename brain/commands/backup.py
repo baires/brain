@@ -4,6 +4,7 @@ import typer
 
 from brain.backup import BackupEngine
 from brain.config import BrainConfig
+from brain.routines.events import emit
 
 
 def run_backup(list_flag: bool = False, restore_path: str | None = None) -> None:
@@ -42,6 +43,7 @@ def run_backup(list_flag: bool = False, restore_path: str | None = None) -> None
     try:
         path = engine.create_backup()
         typer.echo(f"Backup created: {path}")
+        emit("on_backup", path=str(path))
     except Exception as exc:
         typer.echo(f"Backup failed: {exc}", err=True)
         raise typer.Exit(1) from None

@@ -31,8 +31,7 @@ class S3Source:
 
     def _init_db(self) -> None:
         conn = sqlite3.connect(self.state_db_path)
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS s3_state (
                 bucket TEXT NOT NULL,
                 key TEXT NOT NULL,
@@ -40,8 +39,7 @@ class S3Source:
                 ingested_at TEXT NOT NULL,
                 PRIMARY KEY (bucket, key)
             )
-            """
-        )
+            """)
         conn.commit()
         conn.close()
 

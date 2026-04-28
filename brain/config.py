@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 import tomli
+import tomli_w
 from pydantic import BaseModel, Field
 
 from brain.prompts import DEFAULT_SYSTEM_PROMPT
@@ -31,9 +34,10 @@ class BrainConfig(BaseModel):
     backup_retention: int = 30
     backup_daily: bool = True
     agent: AgentConfig = Field(default_factory=AgentConfig)
+    routines: list[RoutineConfig] = Field(default_factory=list)
 
     @classmethod
-    def load_from(cls, path: str | Path | None = None) -> "BrainConfig":
+    def load_from(cls, path: str | Path | None = None) -> BrainConfig:
         path = Path(path) if path else DEFAULT_CONFIG_PATH
         defaults = cls().model_dump()
         if path.exists():
@@ -41,3 +45,15 @@ class BrainConfig(BaseModel):
                 data = tomli.load(f)
             defaults.update(data)
         return cls(**defaults)
+
+    def save_to(self, path: str | Path | None = None) -> None:
+        path = Path(path) if path else DEFAULT_CONFIG_PATH
+        data = self.model_dump(exclude_none=True)
+        with open(path, "wb") as f:
+            tomli_w.dump(data, f)
+
+
+# Resolve forward reference for routines field
+from brain.routines.models import RoutineConfig  # noqa: E402
+
+BrainConfig.model_rebuild()

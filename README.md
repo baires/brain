@@ -179,6 +179,23 @@ After upgrading from an older index, re-run `brain add <notes-dir>` so chunks ar
 /help     — Show commands
 ```
 
+## Routines
+
+Automate actions against your brain data: scheduled email digests, Slack alerts on backup, PDF exports, shell commands, and more. Routines are configured in `~/.brain/config.toml` and can be triggered on a schedule, by events, or manually.
+
+```bash
+# Run a routine now
+brain routine run morning-summary
+
+# Start the scheduler daemon
+brain routine daemon
+
+# List configured routines
+brain routine list
+```
+
+See [`docs/routines.md`](docs/routines.md) for the full guide: built-in actions, trigger types, retry behavior, and how to write your own plugins.
+
 ## Cloud Storage Remotes
 
 Brain supports any S3-compatible storage provider via named remotes. Credentials are stored in your OS keyring — never in config files.
@@ -295,11 +312,3 @@ When `daily = true`, Brain checks on each command whether the last backup is old
 On first `brain init`, a 12-word recovery passphrase is printed. **Write it down.** If your OS keyring is ever reset, this passphrase is the only way to decrypt your backups. There is no cloud key storage and no backdoor.
 
 > **Security note:** Full-disk encryption (FileVault, BitLocker, LUKS) is recommended to protect the live database on disk. Backup encryption ensures your archives remain safe when copied to external drives or cloud storage.
-
-## What's NOT included
-
-- Multi-user auth
-- Image OCR
-- Audio transcription
-- Cross-device sync
-- Cloud LLM or vector store (inference and indexing run fully locally)
