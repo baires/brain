@@ -84,3 +84,32 @@ brain import raw-transcript.txt \
 ```
 
 This wraps the raw text in valid frontmatter before ingestion.
+
+## Config Reference (`~/.brain/config.toml`)
+
+### LLM Provider Fields
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `provider` | string | `"ollama"` | Driver to use: `"ollama"`, `"litellm"`, or `"openai_compat"` |
+| `api_key` | string \| null | `null` | API key for cloud providers. Falls back to env vars (`OPENAI_API_KEY`, etc.) when unset |
+| `base_url` | string \| null | `null` | Custom endpoint URL (e.g. OpenRouter, local proxy, LM Studio) |
+
+### Model Fields
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `chat_model` | string | `"gemma4:e4b"` | Model name for chat/generation. Use `provider/model` format for LiteLLM (e.g. `openai/gpt-4o`) |
+| `embed_model` | string | `"nomic-embed-text"` | Model name for embeddings |
+| `ollama_url` | string | `"http://localhost:11434"` | Ollama server URL (only used when `provider = "ollama"`) |
+
+### Retrieval Fields
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `retrieval_fetch_k` | int | `40` | Candidate chunks fetched from vector DB before re-ranking |
+| `retrieval_top_k` | int | `8` | Final chunks sent to the model after MMR selection |
+| `retrieval_mmr_lambda` | float | `0.7` | MMR relevance/diversity tradeoff (0 = max diversity, 1 = max relevance) |
+| `retrieval_max_context_chars` | int | `12000` | Token budget cap for context passed to the model |
+| `retrieval_max_best_distance` | float | `500.0` | Discard all results if the best match exceeds this distance |
+| `retrieval_relative_distance_margin` | float | `0.8` | Drop candidates more than this fraction further than the best match |
