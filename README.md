@@ -2,6 +2,10 @@
 
 A fully offline CLI tool that ingests documents into a local vector store and answers questions via RAG using local LLMs.
 
+Chat startup                                       |  Chat
+:-------------------------------------------------:|:-------------------------:
+![Chat startup](/assets/1.png "Chat startup")      |  ![Chat](/assets/2.png "Chat")
+
 ```bash
 brain add ./notes/
 brain ask "what did we discuss in the sales meeting yesterday?"
