@@ -15,15 +15,13 @@ brain ask "what did we discuss in the sales meeting yesterday?"
 
 ## Install
 
-Pick **one** of the two methods below.
-
 ### Option A — Global install (recommended)
 
 Installs `brain` onto your PATH so you can run it from anywhere.
 
 ```bash
 # Clone or copy this directory
-cd 2-brain
+cd brain
 
 # Install globally as a uv tool
 uv tool install .
@@ -45,7 +43,7 @@ Keeps everything inside the project folder.
 
 ```bash
 # Clone or copy this directory
-cd 2-brain
+cd brain
 
 # Sync dependencies (creates .venv automatically)
 uv sync
