@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brain"
+version = "0.1.0"
+description = "Offline second brain CLI tool"
+requires-python = ">=3.11"
+dependencies = [
+    "typer",
+    "pydantic>=2",
+    "pyyaml",
+    "chromadb",
+    "watchdog",
+    "boto3",
+    "requests",
+    "tomli",
+    "rich",
+    "textual>=8.2.4",
+    "cryptography",
+    "keyring",
+    "tomli-w>=1.2.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "moto",
+    "black",
+    "ruff",
+    "pre-commit",
+]
+
+[tool.setuptools.packages.find]
+include = ["brain*"]
+
+[project.scripts]
+brain = "brain.cli:app"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # Pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "W",   # pycodestyle warnings
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"brain/cli.py" = ["B008"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
