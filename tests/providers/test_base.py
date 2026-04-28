@@ -14,7 +14,9 @@ def test_llm_provider_protocol_embed():
         def embed(self, text: str, model: str) -> list[float]:
             return [1.0, 2.0]
 
-        def chat(self, prompt: str, model: str, system: str | None = None) -> Generator[str, None, None]:
+        def chat(
+            self, prompt: str, model: str, system: str | None = None
+        ) -> Generator[str, None, None]:
             yield "hi"
 
     provider: LLMProvider = MyProvider()
@@ -26,7 +28,9 @@ def test_llm_provider_protocol_chat():
         def embed(self, text: str, model: str) -> list[float]:
             return []
 
-        def chat(self, prompt: str, model: str, system: str | None = None) -> Generator[str, None, None]:
+        def chat(
+            self, prompt: str, model: str, system: str | None = None
+        ) -> Generator[str, None, None]:
             yield "hello"
             yield " world"
 
@@ -40,7 +44,9 @@ def test_llm_provider_protocol_chat_accepts_system():
         def embed(self, text: str, model: str) -> list[float]:
             return []
 
-        def chat(self, prompt: str, model: str, system: str | None = None) -> Generator[str, None, None]:
+        def chat(
+            self, prompt: str, model: str, system: str | None = None
+        ) -> Generator[str, None, None]:
             if system:
                 yield f"[sys={system}]"
             yield prompt

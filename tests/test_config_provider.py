@@ -23,6 +23,14 @@ def test_provider_can_be_set():
     assert cfg.base_url == "https://api.example.com"
 
 
-def test_existing_ollama_url_field_unchanged():
+def test_ollama_url_alias_migrates_to_base_url():
+    """Setting ollama_url promotes it into base_url for backward compatibility."""
     cfg = BrainConfig(ollama_url="http://myhost:11434")
     assert cfg.ollama_url == "http://myhost:11434"
+    assert cfg.base_url == "http://myhost:11434"
+
+
+def test_default_ollama_url_does_not_override_base_url():
+    """Default ollama_url must not clobber an explicitly unset base_url."""
+    cfg = BrainConfig()
+    assert cfg.base_url is None

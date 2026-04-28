@@ -1,4 +1,5 @@
 """End-to-end integration tests: each provider driver wired through QueryEngine."""
+
 import sys
 import tempfile
 import types
@@ -13,6 +14,7 @@ from brain.query import QueryEngine
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
+
 
 def _fake_store(text: str = "The answer is 42.", distance: float = 0.1):
     store = MagicMock()
@@ -30,6 +32,7 @@ def _fake_store(text: str = "The answer is 42.", distance: float = 0.1):
 # ---------------------------------------------------------------------------
 # Ollama driver integration
 # ---------------------------------------------------------------------------
+
 
 def test_ollama_driver_retrieve_and_ask(monkeypatch):
     """OllamaProvider wired through QueryEngine: retrieve + ask return expected output."""
@@ -58,7 +61,7 @@ def test_ollama_driver_retrieve_and_ask(monkeypatch):
 
     monkeypatch.setattr(requests, "post", fake_post)
 
-    cfg = BrainConfig(provider="ollama", ollama_url="http://localhost:11434")
+    cfg = BrainConfig(provider="ollama", base_url="http://localhost:11434")
     provider = get_provider(cfg)
     assert isinstance(provider, OllamaProvider)
 
@@ -80,6 +83,7 @@ def test_ollama_driver_retrieve_and_ask(monkeypatch):
 # ---------------------------------------------------------------------------
 # LiteLLM driver integration
 # ---------------------------------------------------------------------------
+
 
 def _make_litellm_module(embed_vector=None, chat_tokens=None):
     mod = types.ModuleType("litellm")
@@ -162,6 +166,7 @@ def test_litellm_driver_ask_passes_system_prompt():
 # ---------------------------------------------------------------------------
 # OpenAI-compat driver integration
 # ---------------------------------------------------------------------------
+
 
 def _make_openai_module(embed_vector=None, chat_tokens=None):
     mod = types.ModuleType("openai")
@@ -247,6 +252,7 @@ def test_openai_compat_driver_ask_passes_system_prompt():
 # ---------------------------------------------------------------------------
 # Provider config round-trip: load from TOML
 # ---------------------------------------------------------------------------
+
 
 def test_litellm_config_loads_from_toml():
     """BrainConfig correctly reads provider/api_key/base_url from a TOML file."""

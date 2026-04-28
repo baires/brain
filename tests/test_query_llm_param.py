@@ -1,4 +1,5 @@
 """Tests verifying QueryEngine accepts `llm` parameter (renamed from `ollama`)."""
+
 from unittest.mock import MagicMock
 
 from brain.query import QueryEngine

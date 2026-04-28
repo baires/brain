@@ -11,6 +11,7 @@ class LiteLLMProvider:
     def _litellm(self):
         try:
             import litellm as _litellm
+
             return _litellm
         except ImportError as e:
             raise ProviderError("LiteLLM is not installed. Run: pip install litellm") from e

@@ -7,14 +7,16 @@ def get_provider(config) -> LLMProvider:
     driver = config.provider.lower()
 
     if driver == "ollama":
-        return OllamaProvider(base_url=config.ollama_url)
+        return OllamaProvider(base_url=config.base_url or config.ollama_url)
 
     if driver == "litellm":
         from brain.providers.litellm import LiteLLMProvider
+
         return LiteLLMProvider(api_key=config.api_key, base_url=config.base_url)
 
     if driver == "openai_compat":
         from brain.providers.openai_compat import OpenAICompatProvider
+
         return OpenAICompatProvider(api_key=config.api_key, base_url=config.base_url)
 
     raise ProviderError(f"Unknown provider: {config.provider}")

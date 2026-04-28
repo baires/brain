@@ -12,7 +12,15 @@ def test_default_config_returns_ollama_provider():
     assert isinstance(provider, OllamaProvider)
 
 
-def test_ollama_provider_uses_ollama_url():
+def test_ollama_provider_uses_base_url():
+    cfg = BrainConfig(base_url="http://myhost:11434")
+    provider = get_provider(cfg)
+    assert isinstance(provider, OllamaProvider)
+    assert provider.base_url == "http://myhost:11434"
+
+
+def test_ollama_url_alias_migrates_to_base_url():
+    """Old config files with ollama_url still work via migration alias."""
     cfg = BrainConfig(ollama_url="http://myhost:11434")
     provider = get_provider(cfg)
     assert isinstance(provider, OllamaProvider)
@@ -29,6 +37,7 @@ def test_unknown_provider_raises_provider_error():
 
 def test_litellm_without_dep_raises_provider_error_on_use(monkeypatch):
     import sys
+
     monkeypatch.setitem(sys.modules, "litellm", None)
     cfg = BrainConfig(provider="litellm")
     provider = get_provider(cfg)
@@ -39,6 +48,7 @@ def test_litellm_without_dep_raises_provider_error_on_use(monkeypatch):
 
 def test_openai_compat_without_dep_raises_provider_error_on_use(monkeypatch):
     import sys
+
     monkeypatch.setitem(sys.modules, "openai", None)
     cfg = BrainConfig(provider="openai_compat")
     provider = get_provider(cfg)

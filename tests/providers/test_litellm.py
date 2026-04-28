@@ -48,6 +48,7 @@ def test_embed_returns_vector():
     fake.embedding.return_value = _make_embed_response([0.1, 0.2, 0.3])
     with patch.dict(sys.modules, {"litellm": fake}):
         from brain.providers.litellm import LiteLLMProvider
+
         provider = LiteLLMProvider(api_key="sk-test")
         result = provider.embed("hello", model="openai/text-embedding-3-small")
     assert result == [0.1, 0.2, 0.3]
@@ -58,6 +59,7 @@ def test_embed_passes_api_key_and_model():
     fake.embedding.return_value = _make_embed_response([0.0])
     with patch.dict(sys.modules, {"litellm": fake}):
         from brain.providers.litellm import LiteLLMProvider
+
         provider = LiteLLMProvider(api_key="sk-test")
         provider.embed("hello", model="openai/text-embedding-3-small")
     _, kwargs = fake.embedding.call_args
@@ -71,6 +73,7 @@ def test_embed_passes_base_url_when_set():
     fake.embedding.return_value = _make_embed_response([0.0])
     with patch.dict(sys.modules, {"litellm": fake}):
         from brain.providers.litellm import LiteLLMProvider
+
         provider = LiteLLMProvider(api_key="sk-test", base_url="https://openrouter.ai/api/v1")
         provider.embed("hello", model="openrouter/openai/text-embedding-3-small")
     _, kwargs = fake.embedding.call_args
@@ -83,6 +86,7 @@ def test_chat_yields_tokens():
     fake.completion.return_value = iter(chunks)
     with patch.dict(sys.modules, {"litellm": fake}):
         from brain.providers.litellm import LiteLLMProvider
+
         provider = LiteLLMProvider(api_key="sk-test")
         tokens = list(provider.chat("say hi", model="openai/gpt-4o"))
     assert "".join(tokens) == "Hello world"
@@ -93,6 +97,7 @@ def test_chat_passes_prompt_model_and_stream():
     fake.completion.return_value = iter([_make_done_chunk()])
     with patch.dict(sys.modules, {"litellm": fake}):
         from brain.providers.litellm import LiteLLMProvider
+
         provider = LiteLLMProvider(api_key="sk-test")
         list(provider.chat("say hi", model="openai/gpt-4o"))
     _, kwargs = fake.completion.call_args
@@ -107,6 +112,7 @@ def test_chat_includes_system_message():
     fake.completion.return_value = iter([_make_done_chunk()])
     with patch.dict(sys.modules, {"litellm": fake}):
         from brain.providers.litellm import LiteLLMProvider
+
         provider = LiteLLMProvider(api_key="sk-test")
         list(provider.chat("hi", model="openai/gpt-4o", system="be brief"))
     _, kwargs = fake.completion.call_args
@@ -121,6 +127,7 @@ def test_chat_passes_base_url_when_set():
     fake.completion.return_value = iter([_make_done_chunk()])
     with patch.dict(sys.modules, {"litellm": fake}):
         from brain.providers.litellm import LiteLLMProvider
+
         provider = LiteLLMProvider(api_key="sk-or-test", base_url="https://openrouter.ai/api/v1")
         list(provider.chat("hi", model="openrouter/anthropic/claude-sonnet-4"))
     _, kwargs = fake.completion.call_args
@@ -132,6 +139,7 @@ def test_embed_wraps_exception_as_provider_error():
     fake.embedding.side_effect = Exception("auth failed")
     with patch.dict(sys.modules, {"litellm": fake}):
         from brain.providers.litellm import LiteLLMProvider
+
         provider = LiteLLMProvider(api_key="sk-test")
         with pytest.raises(ProviderError) as exc_info:
             provider.embed("hello", model="openai/text-embedding-3-small")
@@ -143,6 +151,7 @@ def test_chat_wraps_exception_as_provider_error():
     fake.completion.side_effect = Exception("rate limit")
     with patch.dict(sys.modules, {"litellm": fake}):
         from brain.providers.litellm import LiteLLMProvider
+
         provider = LiteLLMProvider(api_key="sk-test")
         with pytest.raises(ProviderError) as exc_info:
             list(provider.chat("hi", model="openai/gpt-4o"))
@@ -154,6 +163,7 @@ def test_no_api_key_not_passed_to_litellm():
     fake.embedding.return_value = _make_embed_response([0.0])
     with patch.dict(sys.modules, {"litellm": fake}):
         from brain.providers.litellm import LiteLLMProvider
+
         provider = LiteLLMProvider()
         provider.embed("hello", model="ollama/llama3.1")
     _, kwargs = fake.embedding.call_args
