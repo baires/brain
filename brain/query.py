@@ -3,7 +3,7 @@ from collections.abc import Generator
 from dataclasses import dataclass, field
 from typing import Any
 
-from brain.prompts import ANSWER_INSTRUCTIONS, DEFAULT_SYSTEM_PROMPT
+from brain.prompts import DEFAULT_SYSTEM_PROMPT
 
 
 @dataclass
@@ -261,7 +261,11 @@ class QueryEngine:
 
     def _rendered_size(self, result: RetrievalResult) -> int:
         section = " > ".join(result.breadcrumbs)
-        source = f"{result.source_path}#{result.id.rsplit('#', 1)[-1]}" if result.source_path else result.id
+        source = (
+            f"{result.source_path}#{result.id.rsplit('#', 1)[-1]}"
+            if result.source_path
+            else result.id
+        )
         header = (
             f'[{result.citation}] title="{result.title}" date="{result.date}" '
             f'type="{result.doc_type}" section="{section}" source="{source}"\n'

@@ -22,9 +22,8 @@ import subprocess
 import sys
 import tempfile
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
-
 
 # ── Ground-truth eval set ──────────────────────────────────────────────────────
 
@@ -68,6 +67,7 @@ CASES = [
 
 
 # ── Result types ───────────────────────────────────────────────────────────────
+
 
 @dataclass
 class CaseResult:
@@ -115,10 +115,15 @@ class BenchmarkResult:
 
     @property
     def source_recall(self) -> float:
-        return sum(1 for c in self.cases if c.correct_source_retrieved) / len(self.cases) if self.cases else 0.0
+        return (
+            sum(1 for c in self.cases if c.correct_source_retrieved) / len(self.cases)
+            if self.cases
+            else 0.0
+        )
 
 
 # ── Worker (runs inside a specific worktree) ───────────────────────────────────
+
 
 def _worker_main(notes_dir: str, query_expansion: bool) -> None:
     """Ingest notes into a temp DB, run all eval cases, print JSON to stdout."""
@@ -145,7 +150,9 @@ def _worker_main(notes_dir: str, query_expansion: bool) -> None:
                 rel_path = str(md_file.relative_to(notes_parent))
                 doc = parse_document(raw, source_path=rel_path)
                 ingest_document(
-                    doc, store, ollama,
+                    doc,
+                    store,
+                    ollama,
                     embed_model=cfg.embed_model,
                     chunk_size=cfg.chunk_size,
                     chunk_overlap=cfg.chunk_overlap,
@@ -195,11 +202,13 @@ def _worker_main(notes_dir: str, query_expansion: bool) -> None:
             retrieved = engine.retrieve(question)
             context = engine.build_context(retrieved)
             prompt = engine.build_prompt(question, context)
-            tokens = list(engine.ollama.chat(
-                prompt=prompt,
-                model=engine.chat_model,
-                system=engine.system_prompt,
-            ))
+            tokens = list(
+                engine.ollama.chat(
+                    prompt=prompt,
+                    model=engine.chat_model,
+                    system=engine.system_prompt,
+                )
+            )
             latency = time.perf_counter() - t0
 
             answer = "".join(tokens).strip()
@@ -210,23 +219,26 @@ def _worker_main(notes_dir: str, query_expansion: bool) -> None:
             missing = [t for t in expected_terms if t.lower() not in answer.lower()]
             context_chars = sum(len(r.text) for r in retrieved)
 
-            results.append({
-                "question": question,
-                "answer": answer,
-                "latency_s": latency,
-                "retrieved_sources": retrieved_sources,
-                "correct_source_retrieved": correct_source,
-                "has_citation": has_citation,
-                "found_terms": found,
-                "missing_terms": missing,
-                "context_chars_used": context_chars,
-                "num_results": len(retrieved),
-            })
+            results.append(
+                {
+                    "question": question,
+                    "answer": answer,
+                    "latency_s": latency,
+                    "retrieved_sources": retrieved_sources,
+                    "correct_source_retrieved": correct_source,
+                    "has_citation": has_citation,
+                    "found_terms": found,
+                    "missing_terms": missing,
+                    "context_chars_used": context_chars,
+                    "num_results": len(retrieved),
+                }
+            )
 
         print(json.dumps(results))
 
 
 # ── Subprocess runner ──────────────────────────────────────────────────────────
+
 
 def _run_worker_in(worktree_path: str, notes_dir_abs: str, query_expansion: bool) -> list[dict]:
     """Run the benchmark worker as a subprocess from a given worktree directory."""
@@ -235,9 +247,12 @@ def _run_worker_in(worktree_path: str, notes_dir_abs: str, query_expansion: bool
     env["PYTHONPATH"] = worktree_path
 
     cmd = [
-        sys.executable, str(Path(worktree_path) / "benchmark.py"),
-        "--_worker", notes_dir_abs,
-        "--_expansion", str(query_expansion),
+        sys.executable,
+        str(Path(worktree_path) / "benchmark.py"),
+        "--_worker",
+        notes_dir_abs,
+        "--_expansion",
+        str(query_expansion),
     ]
     result = subprocess.run(
         cmd,
@@ -268,6 +283,7 @@ def _load_result(label: str, raw: list[dict]) -> BenchmarkResult:
 
 # ── Report ─────────────────────────────────────────────────────────────────────
 
+
 def print_report(old: BenchmarkResult, new: BenchmarkResult) -> None:
     print(f"\n{'═' * 70}")
     print(f"  BENCHMARK: {old.label}  →  {new.label}")
@@ -284,10 +300,10 @@ def print_report(old: BenchmarkResult, new: BenchmarkResult) -> None:
         return f"{arrow} {abs(diff):.1%}"
 
     metrics = [
-        ("Pass rate",       old.pass_rate,        new.pass_rate,        True),
-        ("Source recall",   old.source_recall,    new.source_recall,    True),
-        ("Citation rate",   old.citation_rate,    new.citation_rate,    True),
-        ("Term coverage",   old.avg_term_coverage, new.avg_term_coverage, True),
+        ("Pass rate", old.pass_rate, new.pass_rate, True),
+        ("Source recall", old.source_recall, new.source_recall, True),
+        ("Citation rate", old.citation_rate, new.citation_rate, True),
+        ("Term coverage", old.avg_term_coverage, new.avg_term_coverage, True),
     ]
     for name, ov, nv, hb in metrics:
         d = fmt_delta_pct(ov, nv, hb)
@@ -302,16 +318,18 @@ def print_report(old: BenchmarkResult, new: BenchmarkResult) -> None:
 
     print(f"\n  {'Q':>3}  {'Src':>4}  {'Cite':>4}  {'Cov%':>5}  {'Old✓':>5}  {'New✓':>5}  Question")
     print(f"  {'─' * 70}")
-    for i, (oc, nc) in enumerate(zip(old.cases, new.cases), 1):
+    for i, (oc, nc) in enumerate(zip(old.cases, new.cases, strict=True), 1):
         src = "✓" if nc.correct_source_retrieved else "✗"
         cit = "✓" if nc.has_citation else "✗"
         cov = f"{nc.term_coverage:.0%}"
         op = "✓" if oc.passed else "✗"
         np_ = "✓" if nc.passed else "✗"
         changed = " ←" if oc.passed != nc.passed else ""
-        print(f"  {i:>3}  {src:>4}  {cit:>4}  {cov:>5}  {op:>5}  {np_:>5}  {nc.question[:40]}{changed}")
+        print(
+            f"  {i:>3}  {src:>4}  {cit:>4}  {cov:>5}  {op:>5}  {np_:>5}  {nc.question[:40]}{changed}"
+        )
 
-    print(f"\n  Answers (new branch):")
+    print("\n  Answers (new branch):")
     for i, nc in enumerate(new.cases, 1):
         oc = old.cases[i - 1]
         print(f"\n  Q{i}: {nc.question}")
@@ -322,6 +340,7 @@ def print_report(old: BenchmarkResult, new: BenchmarkResult) -> None:
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -347,8 +366,7 @@ def main() -> None:
 
     # Determine current branch
     current_branch = subprocess.check_output(
-        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-        cwd=repo_root, text=True
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_root, text=True
     ).strip()
 
     print(f"\nBenchmarking:  master  →  {current_branch}")
@@ -361,11 +379,14 @@ def main() -> None:
         print(f"\n[1/2] Creating temporary worktree for master at {wt_path}...")
         subprocess.run(
             ["git", "worktree", "add", "--detach", wt_path, "master"],
-            cwd=repo_root, check=True, capture_output=True
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
         )
 
         # Copy benchmark.py into the master worktree so it can self-invoke as worker
         import shutil
+
         shutil.copy(str(repo_root / "benchmark.py"), str(Path(wt_path) / "benchmark.py"))
 
         try:
@@ -374,13 +395,18 @@ def main() -> None:
             old_result = _load_result("master", old_raw)
 
             print(f"\n[2/2] Running {current_branch} branch...")
-            new_raw = _run_worker_in(str(repo_root), notes_dir_abs, query_expansion=args.with_expansion)
-            new_result = _load_result(f"{current_branch} (expansion={args.with_expansion})", new_raw)
+            new_raw = _run_worker_in(
+                str(repo_root), notes_dir_abs, query_expansion=args.with_expansion
+            )
+            new_result = _load_result(
+                f"{current_branch} (expansion={args.with_expansion})", new_raw
+            )
 
         finally:
             subprocess.run(
                 ["git", "worktree", "remove", "--force", wt_path],
-                cwd=repo_root, capture_output=True
+                cwd=repo_root,
+                capture_output=True,
             )
 
         print_report(old_result, new_result)
