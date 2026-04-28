@@ -5,8 +5,8 @@ from textual.containers import Horizontal, VerticalScroll
 from textual.widgets import Input, LoadingIndicator, Markdown, Static
 
 from brain.config import BrainConfig
-from brain.ollama import OllamaClient
 from brain.prompts import ANSWER_INSTRUCTIONS
+from brain.providers import get_provider
 from brain.query import QueryEngine
 from brain.store import BrainStore
 
@@ -182,11 +182,11 @@ class ChatApp(App):
         cfg = BrainConfig.load_from()
         self.cfg = cfg
         self.store = BrainStore(db_path=cfg.db_path)
-        self.ollama = OllamaClient(base_url=cfg.ollama_url)
+        self.llm = get_provider(cfg)
         self.engine = QueryEngine(
             store=self.store,
-            llm=self.ollama,
-            embedder=self.ollama,
+            llm=self.llm,
+            embedder=self.llm,
             embed_model=cfg.embed_model,
             chat_model=cfg.chat_model,
             fetch_k=cfg.retrieval_fetch_k,
@@ -303,7 +303,7 @@ class ChatApp(App):
         response_parts: list[str] = []
 
         try:
-            for token in self.ollama.chat(
+            for token in self.llm.chat(
                 prompt=prompt,
                 model=self.cfg.chat_model,
                 system=self.cfg.agent.system_prompt,

@@ -2,7 +2,6 @@ from pathlib import Path
 
 from brain.config import BrainConfig
 from brain.ingest import ingest_document
-from brain.ollama import OllamaClient
 from brain.parser import ParseError, parse_document
 from brain.routines.events import emit
 from brain.store import BrainStore
@@ -24,7 +23,7 @@ def _collect_files(path: str) -> list[str]:
 def run_add(path: str) -> None:
     cfg = BrainConfig.load_from()
     store = BrainStore(db_path=cfg.db_path)
-    ollama = OllamaClient(base_url=cfg.ollama_url)
+    llm = get_provider(cfg)
 
     files = _collect_files(path)
     if not files:
@@ -43,7 +42,7 @@ def run_add(path: str) -> None:
         chunk_count = ingest_document(
             doc,
             store,
-            ollama,
+            llm,
             embed_model=cfg.embed_model,
             chunk_size=cfg.chunk_size,
             chunk_overlap=cfg.chunk_overlap,

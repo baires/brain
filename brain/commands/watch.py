@@ -6,8 +6,8 @@ from watchdog.observers import Observer
 
 from brain.config import BrainConfig
 from brain.ingest import ingest_document
-from brain.ollama import OllamaClient
 from brain.parser import ParseError, parse_document
+from brain.providers import get_provider
 from brain.sources.local import read_file
 from brain.store import BrainStore
 
@@ -32,7 +32,7 @@ class _DebouncedHandler(FileSystemEventHandler):
 def _process_file(path: str) -> None:
     cfg = BrainConfig.load_from()
     store = BrainStore(db_path=cfg.db_path)
-    ollama = OllamaClient(base_url=cfg.ollama_url)
+    llm = get_provider(cfg)
 
     try:
         raw = read_file(path)
@@ -44,7 +44,7 @@ def _process_file(path: str) -> None:
     chunk_count = ingest_document(
         doc,
         store,
-        ollama,
+        llm,
         embed_model=cfg.embed_model,
         chunk_size=cfg.chunk_size,
         chunk_overlap=cfg.chunk_overlap,

@@ -18,6 +18,9 @@ class AgentConfig(BaseModel):
 
 
 class BrainConfig(BaseModel):
+    provider: str = "ollama"
+    api_key: str | None = None
+    base_url: str | None = None
     ollama_url: str = "http://localhost:11434"
     chat_model: str = "gemma4:e4b"
     embed_model: str = "nomic-embed-text"

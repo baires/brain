@@ -6,7 +6,7 @@ from rich.markdown import Markdown
 from rich.status import Status
 
 from brain.config import BrainConfig
-from brain.ollama import OllamaClient
+from brain.providers import get_provider
 from brain.query import QueryEngine
 from brain.store import BrainStore
 
@@ -49,11 +49,11 @@ def run_ask(
 ) -> None:
     cfg = BrainConfig.load_from()
     store = BrainStore(db_path=cfg.db_path)
-    ollama = OllamaClient(base_url=cfg.ollama_url)
+    llm = get_provider(cfg)
     engine = QueryEngine(
         store=store,
-        llm=ollama,
-        embedder=ollama,
+        llm=llm,
+        embedder=llm,
         embed_model=cfg.embed_model,
         chat_model=cfg.chat_model,
         fetch_k=cfg.retrieval_fetch_k,
@@ -88,7 +88,7 @@ def run_ask(
         context = engine.build_context(results)
         prompt = engine.build_prompt(question, context)
         _collect_and_render(
-            ollama.chat(prompt=prompt, model=cfg.chat_model, system=cfg.agent.system_prompt),
+            llm.chat(prompt=prompt, model=cfg.chat_model, system=cfg.agent.system_prompt),
             console,
         )
         return

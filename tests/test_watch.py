@@ -8,6 +8,14 @@ from brain.cli import app
 runner = CliRunner()
 
 
+class _FakeProvider:
+    def embed(self, text, model):
+        return [0.1] * 384
+
+    def chat(self, prompt, model, system=None):
+        yield ""
+
+
 def test_watch_detects_new_file():
     with tempfile.TemporaryDirectory() as tmpdir:
         from pathlib import Path
@@ -20,28 +28,14 @@ def test_watch_detects_new_file():
         orig_init_dir = init_mod.DEFAULT_CONFIG_DIR
         init_mod.DEFAULT_CONFIG_DIR = Path(os.path.join(tmpdir, ".brain"))
 
-        # mock ollama in add and watch modules
-        import brain.commands.add as add_mod
         import brain.commands.watch as watch_mod
 
-        orig_add_client = add_mod.OllamaClient
-        orig_watch_client = watch_mod.OllamaClient
-
-        class FakeClient:
-            def __init__(self, *a, **k):
-                pass
-
-            def embed(self, text, model):
-                return [0.1] * 384
-
-        fake = FakeClient
-        add_mod.OllamaClient = fake
-        watch_mod.OllamaClient = fake
+        orig_watch_provider = watch_mod.get_provider
+        watch_mod.get_provider = lambda cfg: _FakeProvider()
 
         try:
             runner.invoke(app, ["init"])
 
-            # Create a markdown file in the watched directory
             md_path = os.path.join(tmpdir, "note.md")
             with open(md_path, "w") as f:
                 f.write("""---
@@ -52,13 +46,10 @@ type: note
 This is a watched note.
 """)
 
-            # Run watch for a very short time by triggering manually
-            # Since watch is a long-running process, we'll call the handler directly
             from brain.commands.watch import _process_file
 
             _process_file(md_path)
 
-            # Check store count increased
             from brain.config import BrainConfig
             from brain.store import BrainStore
 
@@ -68,5 +59,4 @@ This is a watched note.
         finally:
             config_mod.DEFAULT_CONFIG_PATH = orig_default
             init_mod.DEFAULT_CONFIG_DIR = orig_init_dir
-            add_mod.OllamaClient = orig_add_client
-            watch_mod.OllamaClient = orig_watch_client
+            watch_mod.get_provider = orig_watch_provider

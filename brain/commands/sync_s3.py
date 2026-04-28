@@ -1,7 +1,7 @@
 from brain.config import BrainConfig
 from brain.ingest import ingest_document
-from brain.ollama import OllamaClient
 from brain.parser import ParseError, parse_document
+from brain.providers import get_provider
 from brain.remote import RemoteConfig
 from brain.sources.s3 import S3Source
 from brain.store import BrainStore
@@ -10,7 +10,7 @@ from brain.store import BrainStore
 def run_sync_s3(remote: RemoteConfig) -> None:
     cfg = BrainConfig.load_from()
     store = BrainStore(db_path=cfg.db_path)
-    ollama = OllamaClient(base_url=cfg.ollama_url)
+    llm = get_provider(cfg)
     source = S3Source(
         endpoint_url=remote.endpoint,
         key_id=remote.key_id,
@@ -45,7 +45,7 @@ def run_sync_s3(remote: RemoteConfig) -> None:
         chunk_count = ingest_document(
             doc,
             store,
-            ollama,
+            llm,
             embed_model=cfg.embed_model,
             chunk_size=cfg.chunk_size,
             chunk_overlap=cfg.chunk_overlap,

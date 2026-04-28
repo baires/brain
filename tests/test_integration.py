@@ -8,6 +8,22 @@ from brain.cli import app
 runner = CliRunner()
 
 
+class _FakeEmbedProvider:
+    def embed(self, text, model):
+        return [0.1] * 384
+
+    def chat(self, prompt, model, system=None):
+        yield ""
+
+
+class _FakeChatProvider:
+    def embed(self, text, model):
+        return [0.1] * 384
+
+    def chat(self, prompt, model, system=None):
+        yield from ["The", " action", " item", " is", ":", " fix", " the", " login", " bug", "."]
+
+
 def test_integration_add_then_ask():
     with tempfile.TemporaryDirectory() as tmpdir:
         from pathlib import Path
@@ -23,40 +39,10 @@ def test_integration_add_then_ask():
         import brain.commands.add as add_mod
         import brain.commands.ask as ask_mod
 
-        orig_add_client = add_mod.OllamaClient
-        orig_ask_client = ask_mod.OllamaClient
-
-        class FakeEmbedClient:
-            def __init__(self, *a, **k):
-                pass
-
-            def embed(self, text, model):
-                return [0.1] * 384
-
-        class FakeChatClient:
-            def __init__(self, *a, **k):
-                pass
-
-            def embed(self, text, model):
-                return [0.1] * 384
-
-            def chat(self, prompt, model, system=None):
-                # Yield tokens that reference the action item from context
-                yield from [
-                    "The",
-                    " action",
-                    " item",
-                    " is",
-                    ":",
-                    " fix",
-                    " the",
-                    " login",
-                    " bug",
-                    ".",
-                ]
-
-        add_mod.OllamaClient = FakeEmbedClient
-        ask_mod.OllamaClient = FakeChatClient
+        orig_add_provider = add_mod.get_provider
+        orig_ask_provider = ask_mod.get_provider
+        add_mod.get_provider = lambda cfg: _FakeEmbedProvider()
+        ask_mod.get_provider = lambda cfg: _FakeChatProvider()
 
         try:
             runner.invoke(app, ["init"])
@@ -83,5 +69,5 @@ type: meeting
         finally:
             config_mod.DEFAULT_CONFIG_PATH = orig_default
             init_mod.DEFAULT_CONFIG_DIR = orig_init_dir
-            add_mod.OllamaClient = orig_add_client
-            ask_mod.OllamaClient = orig_ask_client
+            add_mod.get_provider = orig_add_provider
+            ask_mod.get_provider = orig_ask_provider

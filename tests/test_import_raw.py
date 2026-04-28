@@ -8,6 +8,14 @@ from brain.cli import app
 runner = CliRunner()
 
 
+class _FakeEmbedProvider:
+    def embed(self, text, model):
+        return [0.1] * 384
+
+    def chat(self, prompt, model, system=None):
+        yield ""
+
+
 def test_import_raw_creates_and_stores():
     with tempfile.TemporaryDirectory() as tmpdir:
         from pathlib import Path
@@ -20,20 +28,18 @@ def test_import_raw_creates_and_stores():
         orig_init_dir = init_mod.DEFAULT_CONFIG_DIR
         init_mod.DEFAULT_CONFIG_DIR = Path(os.path.join(tmpdir, ".brain"))
 
+        import brain.providers as providers_mod
+
+        orig_get_provider = providers_mod.get_provider
+        providers_mod.get_provider = lambda cfg: _FakeEmbedProvider()
+
         import brain.commands.add as add_mod
         import brain.commands.import_raw as import_mod
 
-        orig_add_client = add_mod.OllamaClient
-
-        class FakeClient:
-            def __init__(self, *a, **k):
-                pass
-
-            def embed(self, text, model):
-                return [0.1] * 384
-
-        add_mod.OllamaClient = FakeClient
-        import_mod.OllamaClient = FakeClient
+        orig_add_provider = add_mod.get_provider
+        orig_import_provider = import_mod.get_provider
+        add_mod.get_provider = lambda cfg: _FakeEmbedProvider()
+        import_mod.get_provider = lambda cfg: _FakeEmbedProvider()
 
         try:
             runner.invoke(app, ["init"])
@@ -58,7 +64,6 @@ def test_import_raw_creates_and_stores():
             assert result.exit_code == 0, result.output
             assert "Ingested" in result.output
 
-            # Verify store has chunks
             from brain.config import BrainConfig
             from brain.store import BrainStore
 
@@ -68,8 +73,9 @@ def test_import_raw_creates_and_stores():
         finally:
             config_mod.DEFAULT_CONFIG_PATH = orig_default
             init_mod.DEFAULT_CONFIG_DIR = orig_init_dir
-            add_mod.OllamaClient = orig_add_client
-            import_mod.OllamaClient = orig_add_client
+            providers_mod.get_provider = orig_get_provider
+            add_mod.get_provider = orig_add_provider
+            import_mod.get_provider = orig_import_provider
 
 
 def test_import_raw_with_structure_uses_model_markdown():
@@ -86,12 +92,9 @@ def test_import_raw_with_structure_uses_model_markdown():
 
         import brain.commands.import_raw as import_mod
 
-        orig_client = import_mod.OllamaClient
+        orig_get_provider = import_mod.get_provider
 
-        class FakeClient:
-            def __init__(self, *a, **k):
-                pass
-
+        class FakeStructureProvider:
             def embed(self, text, model):
                 return [0.1] * 384
 
@@ -117,7 +120,7 @@ Nimbus onboarding sync.
 """
                 yield structured
 
-        import_mod.OllamaClient = FakeClient
+        import_mod.get_provider = lambda cfg: FakeStructureProvider()
 
         try:
             runner.invoke(app, ["init"])
@@ -156,4 +159,4 @@ Nimbus onboarding sync.
         finally:
             config_mod.DEFAULT_CONFIG_PATH = orig_default
             init_mod.DEFAULT_CONFIG_DIR = orig_init_dir
-            import_mod.OllamaClient = orig_client
+            import_mod.get_provider = orig_get_provider

@@ -11,6 +11,14 @@ from brain.remote import RemoteConfig
 runner = CliRunner()
 
 
+class _FakeProvider:
+    def embed(self, text, model):
+        return [0.1] * 384
+
+    def chat(self, prompt, model, system=None):
+        yield ""
+
+
 @mock_aws
 def test_s3_sync_ingests_new_files():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -27,16 +35,9 @@ def test_s3_sync_ingests_new_files():
         import brain.commands.sync_s3 as sync_mod
         import brain.sources.s3 as s3_mod
 
-        orig_client = sync_mod.OllamaClient
+        orig_get_provider = sync_mod.get_provider
+        sync_mod.get_provider = lambda cfg: _FakeProvider()
 
-        class FakeClient:
-            def __init__(self, *a, **k):
-                pass
-
-            def embed(self, text, model):
-                return [0.1] * 384
-
-        sync_mod.OllamaClient = FakeClient
         state_path = os.path.join(tmpdir, "s3_state.db")
 
         try:
@@ -59,7 +60,6 @@ def test_s3_sync_ingests_new_files():
             text = source.download_object("brain-bucket", "note1.md")
             assert "S3 content" in text
 
-            # Patch S3Source default so run_sync_s3 uses our temp state db
             s3_mod.S3Source.__init__.__defaults__ = (state_path, None, None, None)
 
             remote = RemoteConfig(
@@ -73,7 +73,6 @@ def test_s3_sync_ingests_new_files():
 
             sync_mod.run_sync_s3(remote)
 
-            # Second sync should skip
             import sys
             from io import StringIO
 
@@ -89,5 +88,5 @@ def test_s3_sync_ingests_new_files():
         finally:
             config_mod.DEFAULT_CONFIG_PATH = orig_default
             init_mod.DEFAULT_CONFIG_DIR = orig_init_dir
-            sync_mod.OllamaClient = orig_client
+            sync_mod.get_provider = orig_get_provider
             s3_mod.S3Source.__init__.__defaults__ = (None, None, None, None)
