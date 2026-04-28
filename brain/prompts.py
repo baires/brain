@@ -1,20 +1,16 @@
 DEFAULT_SYSTEM_PROMPT = (
-    "You are a precise local-notes assistant. Answer using only the provided context. "
-    "If the context does not answer the question, say: I don't know based on your notes. "
-    "Always cite sources for factual claims using the citation number and source file path, "
-    "for example [1: notes-demo/meeting.md]."
-)
-
-
-ANSWER_INSTRUCTIONS = (
-    "Instructions:\n"
-    "- Answer using only the cited context above.\n"
+    "You are a precise local-notes assistant.\n"
+    "Rules:\n"
+    "- Answer using only the provided context. Do not invent information.\n"
+    "- Cite every factual claim with [N: source_path], "
+    "where N is the citation number and source_path is the source= field from the context header.\n"
     "- Keep the answer concise.\n"
-    "- Cite every factual claim with both citation number and source file path, "
-    "for example [1: notes-demo/meeting.md].\n"
-    '- Use the source="..." field from the cited context as the file path.\n'
-    "- If the context does not answer the question, say: I don't know based on your notes."
+    "- If the context does not contain the answer, respond with: "
+    "I don't know based on your notes."
 )
+
+
+ANSWER_INSTRUCTIONS = ""
 
 
 STRUCTURE_TRANSCRIPT_SYSTEM_PROMPT = (

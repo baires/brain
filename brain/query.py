@@ -3,7 +3,7 @@ from collections.abc import Generator
 from dataclasses import dataclass, field
 from typing import Any
 
-from brain.prompts import ANSWER_INSTRUCTIONS, DEFAULT_SYSTEM_PROMPT
+from brain.prompts import DEFAULT_SYSTEM_PROMPT
 
 
 @dataclass
@@ -35,6 +35,7 @@ class QueryEngine:
         max_best_distance: float = 2.0,
         relative_distance_margin: float = 0.35,
         system_prompt: str | None = None,
+        query_expansion: bool = False,
     ):
         self.store = store
         self.ollama = ollama
@@ -47,13 +48,25 @@ class QueryEngine:
         self.max_best_distance = max_best_distance
         self.relative_distance_margin = relative_distance_margin
         self.system_prompt = system_prompt or DEFAULT_SYSTEM_PROMPT
+        self.query_expansion = query_expansion
+
+    def _expand_query(self, question: str) -> str:
+        prompt = (
+            f"Rewrite the following question as a search query with specific keywords "
+            f"that would appear in relevant notes. Output only the rewritten query, nothing else.\n\n"
+            f"Question: {question}\n\nSearch query:"
+        )
+        tokens = list(self.ollama.chat(prompt=prompt, model=self.chat_model))
+        expanded = "".join(tokens).strip()
+        return expanded if expanded else question
 
     def retrieve(
         self,
         question: str,
         filters: dict[str, Any] | None = None,
     ) -> list[RetrievalResult]:
-        embedding = self.ollama.embed(question, model=self.embed_model)
+        query_text = self._expand_query(question) if self.query_expansion else question
+        embedding = self.ollama.embed(query_text, model=self.embed_model)
         raw_results = self.store.query(
             embedding=embedding,
             filters=filters,
@@ -93,13 +106,13 @@ class QueryEngine:
             source = f"{r.source_path}#{r.id.rsplit('#', 1)[-1]}" if r.source_path else r.id
             lines.append(
                 f'[{r.citation}] title="{r.title}" date="{r.date}" type="{r.doc_type}" '
-                f'section="{section}" source="{source}" chunk="{r.id}" distance={r.distance:.4f}\n'
+                f'section="{section}" source="{source}"\n'
                 f"{r.text}"
             )
         return "\n\n".join(lines)
 
     def build_prompt(self, question: str, context: str) -> str:
-        return f"Context:\n{context}\n\n{ANSWER_INSTRUCTIONS}\n\nQuestion: {question}\n\nAnswer:"
+        return f"Context:\n{context}\n\nQuestion: {question}\n\nAnswer:"
 
     # Backward-compatible aliases for tests/callers that used the old private names.
     def _build_context(self, results: list[Any]) -> str:
@@ -164,7 +177,7 @@ class QueryEngine:
         return (-self._relevance(result), result.distance)
 
     def _relevance(self, result: RetrievalResult) -> float:
-        distance_score = 1 / (1 + (result.distance / 100))
+        distance_score = 1 / (1 + result.distance)
         return distance_score + result.lexical_score
 
     def _similarity(self, a: RetrievalResult, b: RetrievalResult) -> float:
@@ -206,10 +219,10 @@ class QueryEngine:
                 score += 1.0
         if "action" in query_terms and "item" in query_terms and "action item" in haystack:
             score += 2.0
-        if "alice" in query_terms and "alice" in result.text.lower():
-            score += 2.0
-        if "sales" in query_terms and "meeting" in result.title.lower():
-            score += 1.0
+        title_lower = result.title.lower()
+        for term in query_terms:
+            if term in title_lower:
+                score += 1.0
         return score
 
     def _query_terms(self, question: str) -> set[str]:
@@ -246,11 +259,24 @@ class QueryEngine:
         }
         return {term for term in normalized if term not in stopwords and len(term) > 2}
 
+    def _rendered_size(self, result: RetrievalResult) -> int:
+        section = " > ".join(result.breadcrumbs)
+        source = (
+            f"{result.source_path}#{result.id.rsplit('#', 1)[-1]}"
+            if result.source_path
+            else result.id
+        )
+        header = (
+            f'[{result.citation}] title="{result.title}" date="{result.date}" '
+            f'type="{result.doc_type}" section="{section}" source="{source}"\n'
+        )
+        return len(header) + len(result.text)
+
     def _apply_context_budget(self, candidates: list[RetrievalResult]) -> list[RetrievalResult]:
         selected = []
         used = 0
         for candidate in candidates:
-            projected = used + len(candidate.text)
+            projected = used + self._rendered_size(candidate)
             if selected and projected > self.max_context_chars:
                 break
             selected.append(candidate)
