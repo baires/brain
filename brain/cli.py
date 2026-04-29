@@ -1,6 +1,7 @@
 import typer
 
 from brain.commands.add import run_add
+from brain.commands.purge import run_purge
 from brain.commands.ask import run_ask
 from brain.commands.backup import run_backup
 from brain.commands.chat import run_chat
@@ -168,6 +169,15 @@ def backup(
     restore: str | None = typer.Option(None, "--restore", help="Restore from a backup file"),
 ) -> None:
     run_backup(list_flag=list_flag, restore_path=restore)
+
+
+@app.command()
+def purge() -> None:
+    """Permanently delete the entire brain database. Irreversible."""
+    from brain.config import BrainConfig
+
+    cfg = BrainConfig.load_from()
+    run_purge(cfg.db_path)
 
 
 @app.command()

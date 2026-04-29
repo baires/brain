@@ -105,6 +105,9 @@ brain sync work
 # Check status
 brain status
 
+# Permanently delete the entire database (irreversible)
+brain purge
+
 # Optional local-model smoke eval using the demo notes
 brain eval notes-demo/ --run-ollama
 ```
@@ -171,7 +174,6 @@ After upgrading from an older index, re-run `brain add <notes-dir>` so chunks ar
 - **Markdown rendering** — bold, lists, code blocks, quotes rendered properly
 - **Session memory** — follow-up questions work naturally (ephemeral, not persisted)
 - **RAG integration** — every message searches your knowledge base automatically
-- **Thinking indicator** — "_Thinking..._" placeholder while the LLM processes
 
 **In-chat commands:**
 ```
