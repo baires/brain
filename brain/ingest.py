@@ -15,11 +15,18 @@ def _embedding_text(chunk) -> str:
     breadcrumbs = " > ".join(chunk.breadcrumbs) if chunk.breadcrumbs else ""
     raw_tags = getattr(chunk.meta, "tags", "")
     tags = " ".join(t.strip() for t in raw_tags.split(",") if t.strip()) if raw_tags else ""
-    meta_bits = [
-        getattr(chunk.meta, "title", ""),
-        getattr(chunk.meta, "doc_type", ""),
-        getattr(chunk.meta, "date", ""),
-        tags,
-        breadcrumbs,
-    ]
-    return "\n".join(bit for bit in meta_bits + [chunk.text] if bit)
+
+    parts = []
+    if title := getattr(chunk.meta, "title", ""):
+        parts.append(f"Title: {title}")
+    if doc_type := getattr(chunk.meta, "doc_type", ""):
+        parts.append(f"Type: {doc_type}")
+    if date := getattr(chunk.meta, "date", ""):
+        parts.append(f"Date: {date}")
+    if tags:
+        parts.append(f"Tags: {tags}")
+    if breadcrumbs:
+        parts.append(f"Section: {breadcrumbs}")
+
+    parts.append(f"Content:\n{chunk.text}")
+    return "\n".join(parts)

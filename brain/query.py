@@ -52,12 +52,17 @@ class QueryEngine:
 
     def _expand_query(self, question: str) -> str:
         prompt = (
-            f"Rewrite the following question as a search query with specific keywords "
-            f"that would appear in relevant notes. Output only the rewritten query, nothing else.\n\n"
-            f"Question: {question}\n\nSearch query:"
+            "You are a search query generator. Rewrite the question into a highly effective keyword search query.\n"
+            "Do NOT include any conversational text like 'Here is the query' or 'Search query:'.\n"
+            "Output ONLY the keywords.\n\n"
+            f"Question: {question}\n"
+            "Query:"
         )
         tokens = list(self.ollama.chat(prompt=prompt, model=self.chat_model))
         expanded = "".join(tokens).strip()
+        # Clean up common model fluff just in case
+        if "Here is" in expanded or "search query" in expanded.lower():
+            expanded = expanded.split("\n")[-1].strip(" \"'")
         return expanded if expanded else question
 
     def retrieve(
@@ -100,19 +105,27 @@ class QueryEngine:
         )
 
     def build_context(self, results: list[RetrievalResult]) -> str:
-        lines = []
+        lines = ["<context>"]
         for r in results:
             section = " > ".join(r.breadcrumbs)
             source = f"{r.source_path}#{r.id.rsplit('#', 1)[-1]}" if r.source_path else r.id
             lines.append(
-                f'[{r.citation}] title="{r.title}" date="{r.date}" type="{r.doc_type}" '
-                f'section="{section}" source="{source}"\n'
-                f"{r.text}"
+                f'<document citation="{r.citation}" title="{r.title}" date="{r.date}" type="{r.doc_type}" '
+                f'section="{section}" source="{source}">\n'
+                f"{r.text}\n"
+                f"</document>"
             )
-        return "\n\n".join(lines)
+        lines.append("</context>")
+        return "\n".join(lines)
 
     def build_prompt(self, question: str, context: str) -> str:
-        return f"Context:\n{context}\n\nQuestion: {question}\n\nAnswer:"
+        return (
+            "Please answer the following question using ONLY the provided context documents.\n"
+            "When you use information from a document, you MUST include its citation number in brackets, e.g., [1] or [2].\n\n"
+            f"{context}\n\n"
+            f"<question>\n{question}\n</question>\n\n"
+            "Answer:"
+        )
 
     # Backward-compatible aliases for tests/callers that used the old private names.
     def _build_context(self, results: list[Any]) -> str:
@@ -217,8 +230,6 @@ class QueryEngine:
         for term in query_terms:
             if term in haystack:
                 score += 1.0
-        if "action" in query_terms and "item" in query_terms and "action item" in haystack:
-            score += 2.0
         title_lower = result.title.lower()
         for term in query_terms:
             if term in title_lower:
@@ -227,13 +238,6 @@ class QueryEngine:
 
     def _query_terms(self, question: str) -> set[str]:
         terms = set(re.findall(r"[a-z0-9]+", question.lower()))
-        normalized = set(terms)
-        if "items" in normalized:
-            normalized.add("item")
-        if "actions" in normalized:
-            normalized.add("action")
-        if "meeeting" in normalized:
-            normalized.add("meeting")
         stopwords = {
             "what",
             "are",
@@ -256,8 +260,26 @@ class QueryEngine:
             "and",
             "or",
             "with",
+            "how",
+            "why",
+            "when",
+            "where",
+            "who",
+            "which",
+            "about",
+            "that",
+            "this",
+            "there",
+            "then",
+            "can",
+            "could",
+            "would",
+            "should",
+            "has",
+            "have",
+            "had",
         }
-        return {term for term in normalized if term not in stopwords and len(term) > 2}
+        return {term for term in terms if term not in stopwords and len(term) > 2}
 
     def _rendered_size(self, result: RetrievalResult) -> int:
         section = " > ".join(result.breadcrumbs)
