@@ -14,6 +14,8 @@ class RetrievalResult:
     title: str = "Unknown"
     date: str = ""
     doc_type: str = ""
+    author: str = ""
+    source: str = ""
     breadcrumbs: list[str] = field(default_factory=list)
     distance: float = 0.0
     citation: int = 0
@@ -109,9 +111,10 @@ class QueryEngine:
         for r in results:
             section = " > ".join(r.breadcrumbs)
             source = f"{r.source_path}#{r.id.rsplit('#', 1)[-1]}" if r.source_path else r.id
+            author_attr = f' author="{r.author}"' if r.author else ""
             lines.append(
-                f'<document citation="{r.citation}" title="{r.title}" date="{r.date}" type="{r.doc_type}" '
-                f'section="{section}" source="{source}">\n'
+                f'<document citation="{r.citation}" title="{r.title}" date="{r.date}" type="{r.doc_type}"'
+                f'{author_attr} section="{section}" source="{source}">\n'
                 f"{r.text}\n"
                 f"</document>"
             )
@@ -153,6 +156,8 @@ class QueryEngine:
             title=meta.get("title", "Unknown"),
             date=meta.get("date", ""),
             doc_type=meta.get("doc_type", ""),
+            author=meta.get("author", ""),
+            source=meta.get("source", ""),
             breadcrumbs=breadcrumb_list,
             distance=float(raw.get("distance", 0.0) or 0.0),
             embedding=raw.get("embedding"),
@@ -222,6 +227,8 @@ class QueryEngine:
             [
                 result.title,
                 result.doc_type,
+                result.author,
+                result.source,
                 " ".join(result.breadcrumbs),
                 result.text,
             ]
@@ -290,7 +297,7 @@ class QueryEngine:
         )
         header = (
             f'[{result.citation}] title="{result.title}" date="{result.date}" '
-            f'type="{result.doc_type}" section="{section}" source="{source}"\n'
+            f'type="{result.doc_type}" author="{result.author}" section="{section}" source="{source}"\n'
         )
         return len(header) + len(result.text)
 

@@ -23,6 +23,10 @@ def _embedding_text(chunk) -> str:
         parts.append(f"Type: {doc_type}")
     if date := getattr(chunk.meta, "date", ""):
         parts.append(f"Date: {date}")
+    if author := getattr(chunk.meta, "author", ""):
+        parts.append(f"Author: {author}")
+    if source := getattr(chunk.meta, "source", ""):
+        parts.append(f"Source: {source}")
     if tags:
         parts.append(f"Tags: {tags}")
     if breadcrumbs:
