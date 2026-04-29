@@ -27,7 +27,7 @@ class BrainConfig(BaseModel):
     retrieval_fetch_k: int = 40
     retrieval_top_k: int = 8
     retrieval_mmr_lambda: float = 0.7
-    retrieval_max_context_chars: int = 12000
+    retrieval_max_context_tokens: int = 3000
     retrieval_max_best_distance: float = 500.0
     retrieval_relative_distance_margin: float = 0.8
     retrieval_query_expansion: bool = False

@@ -281,6 +281,9 @@ uv add --dev <package>
 
 # Lock dependencies
 uv lock
+
+# Reinstall brain
+uv tool install . --reinstall
 ```
 
 ## Backup & Restore

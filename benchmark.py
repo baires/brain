@@ -160,37 +160,61 @@ def _worker_main(notes_dir: str, query_expansion: bool) -> None:
             except (ParseError, UnicodeDecodeError):
                 pass
 
-        # Build engine — handle branches that don't have query_expansion param yet
+        # Handle cfg attribute changes
+        max_context = getattr(cfg, "retrieval_max_context_tokens", None)
+        if max_context is None:
+            max_context = getattr(cfg, "retrieval_max_context_chars", 12000)
+
+        # Build engine — handle different branch signatures
         try:
+            # Current signature
             engine = QueryEngine(
                 store=store,
-                ollama=ollama,
+                llm=ollama,
+                embedder=ollama,
                 embed_model=cfg.embed_model,
                 chat_model=cfg.chat_model,
                 fetch_k=cfg.retrieval_fetch_k,
                 top_k=cfg.retrieval_top_k,
                 mmr_lambda=cfg.retrieval_mmr_lambda,
-                max_context_chars=cfg.retrieval_max_context_chars,
+                max_context_tokens=max_context,
                 max_best_distance=cfg.retrieval_max_best_distance,
                 relative_distance_margin=cfg.retrieval_relative_distance_margin,
                 system_prompt=cfg.agent.system_prompt,
                 query_expansion=query_expansion,
             )
         except TypeError:
-            # master branch QueryEngine doesn't have query_expansion param
-            engine = QueryEngine(
-                store=store,
-                ollama=ollama,
-                embed_model=cfg.embed_model,
-                chat_model=cfg.chat_model,
-                fetch_k=cfg.retrieval_fetch_k,
-                top_k=cfg.retrieval_top_k,
-                mmr_lambda=cfg.retrieval_mmr_lambda,
-                max_context_chars=cfg.retrieval_max_context_chars,
-                max_best_distance=cfg.retrieval_max_best_distance,
-                relative_distance_margin=cfg.retrieval_relative_distance_margin,
-                system_prompt=cfg.agent.system_prompt,
-            )
+            try:
+                # Older signature with max_context_chars and query_expansion
+                engine = QueryEngine(
+                    store=store,
+                    ollama=ollama,
+                    embed_model=cfg.embed_model,
+                    chat_model=cfg.chat_model,
+                    fetch_k=cfg.retrieval_fetch_k,
+                    top_k=cfg.retrieval_top_k,
+                    mmr_lambda=cfg.retrieval_mmr_lambda,
+                    max_context_chars=max_context,
+                    max_best_distance=cfg.retrieval_max_best_distance,
+                    relative_distance_margin=cfg.retrieval_relative_distance_margin,
+                    system_prompt=cfg.agent.system_prompt,
+                    query_expansion=query_expansion,
+                )
+            except TypeError:
+                # Oldest signature without query_expansion
+                engine = QueryEngine(
+                    store=store,
+                    ollama=ollama,
+                    embed_model=cfg.embed_model,
+                    chat_model=cfg.chat_model,
+                    fetch_k=cfg.retrieval_fetch_k,
+                    top_k=cfg.retrieval_top_k,
+                    mmr_lambda=cfg.retrieval_mmr_lambda,
+                    max_context_chars=max_context,
+                    max_best_distance=cfg.retrieval_max_best_distance,
+                    relative_distance_margin=cfg.retrieval_relative_distance_margin,
+                    system_prompt=cfg.agent.system_prompt,
+                )
 
         results = []
         for case in CASES:
@@ -202,8 +226,9 @@ def _worker_main(notes_dir: str, query_expansion: bool) -> None:
             retrieved = engine.retrieve(question)
             context = engine.build_context(retrieved)
             prompt = engine.build_prompt(question, context)
+            llm_provider = getattr(engine, "llm", getattr(engine, "ollama", None))
             tokens = list(
-                engine.ollama.chat(
+                llm_provider.chat(
                     prompt=prompt,
                     model=engine.chat_model,
                     system=engine.system_prompt,

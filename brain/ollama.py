@@ -3,12 +3,14 @@ from collections.abc import Generator
 
 import requests
 
+from brain.providers.base import EmbeddingProvider, LLMProvider
+
 
 class OllamaError(Exception):
     pass
 
 
-class OllamaClient:
+class OllamaClient(EmbeddingProvider, LLMProvider):
     def __init__(self, base_url: str = "http://localhost:11434"):
         self.base_url = base_url.rstrip("/")
 

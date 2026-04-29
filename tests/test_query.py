@@ -26,7 +26,8 @@ def test_query_rag_builds_prompt_and_streams():
 
     engine = QueryEngine(
         store=mock_store,
-        ollama=mock_ollama,
+        llm=mock_ollama,
+        embedder=mock_ollama,
         embed_model="nomic-embed-text",
         chat_model="gemma4:e4b",
     )
@@ -49,7 +50,11 @@ def test_query_rag_builds_prompt_and_streams():
 
 def test_context_formatting_includes_citations_and_metadata():
     engine = QueryEngine(
-        store=MagicMock(), ollama=MagicMock(), embed_model="embed", chat_model="chat"
+        store=MagicMock(),
+        llm=MagicMock(),
+        embedder=MagicMock(),
+        embed_model="embed",
+        chat_model="chat",
     )
     context = engine.build_context(
         [
@@ -66,7 +71,7 @@ def test_context_formatting_includes_citations_and_metadata():
             )
         ]
     )
-    assert "[1]" in context
+    assert 'citation="1"' in context
     assert 'title="Sales Meeting"' in context
     assert 'date="2026-04-26"' in context
     assert 'section="Sales Meeting > Action Items"' in context
@@ -76,16 +81,19 @@ def test_context_formatting_includes_citations_and_metadata():
 
 def test_prompt_requires_file_path_citations():
     engine = QueryEngine(
-        store=MagicMock(), ollama=MagicMock(), embed_model="embed", chat_model="chat"
+        store=MagicMock(),
+        llm=MagicMock(),
+        embedder=MagicMock(),
+        embed_model="embed",
+        chat_model="chat",
     )
     prompt = engine.build_prompt(
         "What did Bob do?",
         '[1] title="Sales Meeting" source="notes-demo/meeting.md#2"\nBob sends proposal.',
     )
-    assert "Context:" in prompt
-    assert "Question:" in prompt
     assert "Answer:" in prompt
     assert 'source="notes-demo/meeting.md#2"' in prompt
+    assert "What did Bob do?" in prompt
 
 
 def test_retrieval_drops_weak_results_and_answer_is_conservative():
@@ -97,7 +105,8 @@ def test_retrieval_drops_weak_results_and_answer_is_conservative():
     mock_ollama.embed.return_value = [0.1] * 384
     engine = QueryEngine(
         store=mock_store,
-        ollama=mock_ollama,
+        llm=mock_ollama,
+        embedder=mock_ollama,
         embed_model="embed",
         chat_model="chat",
         max_best_distance=2.0,
@@ -133,7 +142,8 @@ def test_retrieval_limits_near_duplicate_sources_with_mmr():
     mock_ollama.embed.return_value = [0.1] * 384
     engine = QueryEngine(
         store=mock_store,
-        ollama=mock_ollama,
+        llm=mock_ollama,
+        embedder=mock_ollama,
         embed_model="embed",
         chat_model="chat",
         top_k=2,
@@ -175,7 +185,8 @@ def test_retrieval_keeps_lexically_relevant_action_item_outside_distance_margin(
     mock_ollama.embed.return_value = [0.1] * 384
     engine = QueryEngine(
         store=mock_store,
-        ollama=mock_ollama,
+        llm=mock_ollama,
+        embedder=mock_ollama,
         embed_model="embed",
         chat_model="chat",
         top_k=1,

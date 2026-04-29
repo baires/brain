@@ -1,12 +1,27 @@
+from typing import Any
+
+from brain.providers.base import EmbeddingProvider, TokenizerProvider
+
+
 def ingest_document(
-    doc, store, ollama, *, embed_model: str, chunk_size: int, chunk_overlap: int
+    doc: Any,
+    store: Any,
+    embedder: EmbeddingProvider,
+    *,
+    embed_model: str,
+    chunk_size: int,
+    chunk_overlap: int,
+    tokenizer: TokenizerProvider | None = None,
 ) -> int:
     from brain.chunker import chunk_document
 
-    chunks = chunk_document(doc, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    count_tokens = tokenizer.count_tokens if tokenizer else None
+    chunks = chunk_document(
+        doc, chunk_size=chunk_size, chunk_overlap=chunk_overlap, count_tokens=count_tokens
+    )
     if not chunks:
         return 0
-    embeddings = [ollama.embed(_embedding_text(chunk), model=embed_model) for chunk in chunks]
+    embeddings = [embedder.embed(_embedding_text(chunk), model=embed_model) for chunk in chunks]
     store.replace_source_chunks(doc.source_path or "raw", chunks, embeddings)
     return len(chunks)
 

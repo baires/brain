@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from brain.prompts import DEFAULT_SYSTEM_PROMPT
+from brain.providers.base import EmbeddingProvider, LLMProvider, RerankerProvider, TokenizerProvider
 
 
 @dataclass
@@ -27,26 +28,32 @@ class QueryEngine:
     def __init__(
         self,
         store: Any,
-        ollama: Any,
+        llm: LLMProvider,
+        embedder: EmbeddingProvider,
         embed_model: str,
         chat_model: str,
+        reranker: RerankerProvider | None = None,
+        tokenizer: TokenizerProvider | None = None,
         fetch_k: int = 40,
         top_k: int = 8,
         mmr_lambda: float = 0.7,
-        max_context_chars: int = 12000,
+        max_context_tokens: int = 3000,
         max_best_distance: float = 2.0,
         relative_distance_margin: float = 0.35,
         system_prompt: str | None = None,
         query_expansion: bool = False,
     ):
         self.store = store
-        self.ollama = ollama
+        self.llm = llm
+        self.embedder = embedder
+        self.reranker = reranker
+        self.tokenizer = tokenizer
         self.embed_model = embed_model
         self.chat_model = chat_model
         self.fetch_k = fetch_k
         self.top_k = top_k
         self.mmr_lambda = mmr_lambda
-        self.max_context_chars = max_context_chars
+        self.max_context_tokens = max_context_tokens
         self.max_best_distance = max_best_distance
         self.relative_distance_margin = relative_distance_margin
         self.system_prompt = system_prompt or DEFAULT_SYSTEM_PROMPT
@@ -60,7 +67,7 @@ class QueryEngine:
             f"Question: {question}\n"
             "Query:"
         )
-        tokens = list(self.ollama.chat(prompt=prompt, model=self.chat_model))
+        tokens = list(self.llm.chat(prompt=prompt, model=self.chat_model))
         expanded = "".join(tokens).strip()
         # Clean up common model fluff just in case
         if "Here is" in expanded or "search query" in expanded.lower():
@@ -73,7 +80,7 @@ class QueryEngine:
         filters: dict[str, Any] | None = None,
     ) -> list[RetrievalResult]:
         query_text = self._expand_query(question) if self.query_expansion else question
-        embedding = self.ollama.embed(query_text, model=self.embed_model)
+        embedding = self.embedder.embed(query_text, model=self.embed_model)
         raw_results = self.store.query(
             embedding=embedding,
             filters=filters,
@@ -83,6 +90,15 @@ class QueryEngine:
         for candidate in candidates:
             candidate.lexical_score = self._lexical_score(question, candidate)
         candidates = self._filter_by_distance(candidates)
+        if self.reranker:
+            # If reranker is present, use it before MMR selection or replace MMR
+            # Reranker returns indices mapped to scores
+            rerank_results = self.reranker.rerank(
+                question, [c.text for c in candidates], top_n=self.fetch_k
+            )
+            # Reorder candidates based on reranker
+            candidates = [candidates[r["index"]] for r in rerank_results]
+
         candidates = self._select_mmr(candidates, self.top_k)
         candidates = self._apply_context_budget(candidates)
         for idx, result in enumerate(candidates, start=1):
@@ -100,7 +116,7 @@ class QueryEngine:
             return
         context = self.build_context(results)
         prompt = self.build_prompt(question, context)
-        yield from self.ollama.chat(
+        yield from self.llm.chat(
             prompt=prompt,
             model=self.chat_model,
             system=self.system_prompt,
@@ -152,12 +168,12 @@ class QueryEngine:
         return RetrievalResult(
             id=raw.get("id", ""),
             text=raw.get("text", ""),
-            source_path=meta.get("source_path", ""),
-            title=meta.get("title", "Unknown"),
-            date=meta.get("date", ""),
-            doc_type=meta.get("doc_type", ""),
-            author=meta.get("author", ""),
-            source=meta.get("source", ""),
+            source_path=meta.get("source_path") or "",
+            title=meta.get("title") or "Unknown",
+            date=meta.get("date") or "",
+            doc_type=meta.get("doc_type") or "",
+            author=meta.get("author") or "",
+            source=meta.get("source") or "",
             breadcrumbs=breadcrumb_list,
             distance=float(raw.get("distance", 0.0) or 0.0),
             embedding=raw.get("embedding"),
@@ -168,7 +184,7 @@ class QueryEngine:
             return []
         best = min(r.distance for r in candidates)
         if best > self.max_best_distance:
-            return []
+            return [r for r in candidates if r.lexical_score >= 2.0]
         cutoff = best * (1 + self.relative_distance_margin)
         return [r for r in candidates if r.distance <= cutoff or r.lexical_score >= 2.0]
 
@@ -299,14 +315,18 @@ class QueryEngine:
             f'[{result.citation}] title="{result.title}" date="{result.date}" '
             f'type="{result.doc_type}" author="{result.author}" section="{section}" source="{source}"\n'
         )
-        return len(header) + len(result.text)
+        text = header + result.text
+        if self.tokenizer:
+            return self.tokenizer.count_tokens(text)
+        # default naive char approximation to token count
+        return len(text) // 4
 
     def _apply_context_budget(self, candidates: list[RetrievalResult]) -> list[RetrievalResult]:
         selected = []
         used = 0
         for candidate in candidates:
             projected = used + self._rendered_size(candidate)
-            if selected and projected > self.max_context_chars:
+            if selected and projected > self.max_context_tokens:
                 break
             selected.append(candidate)
             used = projected

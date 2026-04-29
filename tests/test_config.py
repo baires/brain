@@ -15,7 +15,7 @@ def test_config_defaults():
     assert cfg.retrieval_fetch_k == 40
     assert cfg.retrieval_top_k == 8
     assert cfg.retrieval_mmr_lambda == 0.7
-    assert cfg.retrieval_max_context_chars == 12000
+    assert cfg.retrieval_max_context_tokens == 3000
     assert cfg.retrieval_max_best_distance == 500.0
     assert cfg.retrieval_relative_distance_margin == 0.8
 

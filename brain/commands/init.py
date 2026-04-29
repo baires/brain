@@ -23,7 +23,7 @@ def run_init() -> None:
             f"retrieval_fetch_k = {default.retrieval_fetch_k}",
             f"retrieval_top_k = {default.retrieval_top_k}",
             f"retrieval_mmr_lambda = {default.retrieval_mmr_lambda}",
-            f"retrieval_max_context_chars = {default.retrieval_max_context_chars}",
+            f"retrieval_max_context_tokens = {default.retrieval_max_context_tokens}",
             f"retrieval_max_best_distance = {default.retrieval_max_best_distance}",
             f"retrieval_relative_distance_margin = {default.retrieval_relative_distance_margin}",
         ]

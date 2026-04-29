@@ -1,4 +1,5 @@
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from types import SimpleNamespace
 
@@ -91,18 +92,19 @@ def _split_by_paragraphs(text: str) -> list[str]:
     return blocks
 
 
-def _approx_token_count(text: str) -> int:
+def _default_token_count(text: str) -> int:
     return len(text) // 4
 
 
-def _split_oversized(text: str, max_tokens: int) -> list[str]:
+def _split_oversized(text: str, max_tokens: int, count_tokens: Callable[[str], int]) -> list[str]:
     """Split text into pieces under max_tokens by sentences, or words if no sentences."""
-    if _approx_token_count(text) <= max_tokens:
+    if count_tokens(text) <= max_tokens:
         return [text]
     sentences = re.split(r"(?<=[.!?])\s+", text)
     if len(sentences) <= 1:
         # No sentence boundaries — split by words
         words = text.split()
+        # approximate chars limit based on max_tokens to prevent very slow iterations
         max_chars = max_tokens * 4
         pieces = []
         current = ""
@@ -118,7 +120,7 @@ def _split_oversized(text: str, max_tokens: int) -> list[str]:
     pieces = []
     current = ""
     for sent in sentences:
-        if _approx_token_count(current + " " + sent) > max_tokens and current:
+        if count_tokens(current + " " + sent) > max_tokens and current:
             pieces.append(current.strip())
             current = sent
         else:
@@ -144,16 +146,21 @@ def _overlap_text(text: str, overlap_tokens: int) -> str:
     return " ".join(reversed(selected))
 
 
-def _merge_chunks(parts: list[str], max_tokens: int, overlap_tokens: int = 0) -> list[str]:
+def _merge_chunks(
+    parts: list[str],
+    max_tokens: int,
+    overlap_tokens: int = 0,
+    count_tokens: Callable[[str], int] = _default_token_count,
+) -> list[str]:
     """Merge small parts into chunks under max_tokens."""
     split_parts = []
     for part in parts:
-        split_parts.extend(_split_oversized(part, max_tokens))
+        split_parts.extend(_split_oversized(part, max_tokens, count_tokens))
 
     chunks = []
     current = ""
     for part in split_parts:
-        if _approx_token_count(current + "\n\n" + part) > max_tokens and current:
+        if count_tokens(current + "\n\n" + part) > max_tokens and current:
             chunks.append(current.strip())
             overlap = _overlap_text(current, overlap_tokens)
             current = (overlap + "\n\n" + part).strip() if overlap else part
@@ -169,11 +176,15 @@ def _has_structured_headers(text: str) -> bool:
 
 
 def chunk_document(
-    doc: BrainDocument, chunk_size: int = 512, chunk_overlap: int = 50
+    doc: BrainDocument,
+    chunk_size: int = 512,
+    chunk_overlap: int = 50,
+    count_tokens: Callable[[str], int] | None = None,
 ) -> list[Chunk]:
     text = doc.content
     structured = _has_structured_headers(text)
     chunks = []
+    counter = count_tokens or _default_token_count
 
     base_meta = {
         "source_path": doc.source_path or "",
@@ -193,7 +204,7 @@ def chunk_document(
             if not section.body:
                 continue
             parts = _split_by_paragraphs(section.body)
-            merged = _merge_chunks(parts, chunk_size, chunk_overlap)
+            merged = _merge_chunks(parts, chunk_size, chunk_overlap, count_tokens=counter)
             for _idx, m in enumerate(merged):
                 chunk_id = f"{doc.source_path or 'raw'}#{len(chunks)}"
                 breadcrumbs = [doc.meta.title] + section.breadcrumbs
@@ -215,7 +226,7 @@ def chunk_document(
                 )
     else:
         parts = _split_by_paragraphs(text)
-        merged = _merge_chunks(parts, chunk_size, chunk_overlap)
+        merged = _merge_chunks(parts, chunk_size, chunk_overlap, count_tokens=counter)
         for _idx, m in enumerate(merged):
             chunk_id = f"{doc.source_path or 'raw'}#{len(chunks)}"
             meta = SimpleNamespace(**base_meta)
