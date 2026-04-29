@@ -1,8 +1,8 @@
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import VerticalScroll
-from textual.widgets import Footer, Input, LoadingIndicator, Markdown, Static
+from textual.containers import Horizontal, VerticalScroll
+from textual.widgets import Input, LoadingIndicator, Markdown, Static
 
 from brain.config import BrainConfig
 from brain.ollama import OllamaClient
@@ -42,52 +42,138 @@ class ChatApp(App):
 
     CSS = """
     ChatApp {
-        background: $surface-darken-1;
+        background: #11130f;
+        color: #d7d0c0;
+    }
+
+    #masthead {
+        dock: top;
+        height: 4;
+        padding: 1 2 0 2;
+        background: #181b16;
+        border-bottom: solid #4f584a;
+    }
+
+    #brand {
+        width: 1fr;
+        content-align: left middle;
+        text-style: bold;
+        color: #f2eadb;
+    }
+
+    .status-pill {
+        width: auto;
+        min-width: 18;
+        height: 1;
+        margin: 0 0 0 1;
+        padding: 0 1;
+        background: #242920;
+        color: #c9c3b5;
+        text-align: center;
+        content-align: center middle;
     }
 
     #chat-view {
         width: 100%;
         height: 1fr;
-        padding: 0 1;
+        padding: 1 3 2 3;
+        background: #11130f;
+        scrollbar-color: #7ab8b0;
+        scrollbar-color-hover: #97d5cb;
+    }
+
+    #chat-input-deck {
+        dock: bottom;
+        width: 100%;
+        height: 6;
+        padding: 1 2 1 2;
+        background: #11130f;
+        border-top: solid #30362d;
     }
 
     #chat-input {
-        dock: bottom;
-        height: auto;
-        margin: 0 1 1 1;
+        width: 1fr;
+        height: 3;
+        margin: 0;
+        border: solid #4f584a;
+        background: #181b16;
+        color: #f2eadb;
+    }
+
+    #chat-input:focus {
+        border: solid #7ea6d8;
     }
 
     .user-message {
-        width: auto;
-        max-width: 70%;
+        width: 100%;
         height: auto;
-        margin: 1 0 1 8;
+        margin: 2 0 1 0;
         padding: 0 1;
-        background: $success-darken-3;
-        border: tall $success;
-        color: $text;
-        content-align: right middle;
-        align: right middle;
+        color: #b0ca89;
+        text-align: right;
     }
 
     .assistant-message {
         width: 100%;
         height: auto;
-        margin: 1 0;
+        margin: 1 0 2 0;
+        padding: 0 1 0 0;
+        color: #d7d0c0;
+    }
+
+    .assistant-message MarkdownH1,
+    .assistant-message MarkdownH2,
+    .assistant-message MarkdownH3 {
+        color: #f2eadb;
+        text-style: bold;
+    }
+
+    .assistant-message MarkdownBullet {
+        color: #7ab8b0;
+    }
+
+    .assistant-message MarkdownCode {
+        color: #edc978;
+    }
+
+    .welcome-message {
+        width: 100%;
+        height: auto;
+        margin: 0 0 2 0;
+        padding: 1 2;
+        border: solid #4f584a;
+        background: #181b16;
+        color: #d7d0c0;
     }
 
     .thinking-indicator {
-        width: 6;
-        height: 1;
-        margin: 1 0;
+        width: 12;
+        height: 3;
+        margin: 1 0 2 0;
+        padding: 0 1;
+        border: solid #7ea6d8;
+        background: #181b16;
     }
 
     .system-message {
-        width: 100%;
+        width: auto;
         height: auto;
-        margin: 1 0;
-        color: $warning;
+        margin: 1 0 1 2;
+        padding: 0 1;
+        border-left: heavy #d4ad58;
+        background: #242920;
+        color: #edc978;
         text-align: center;
+    }
+
+    .success-message {
+        border-left: heavy #8fad70;
+        color: #b0ca89;
+    }
+
+    .error-message {
+        border-left: heavy #d97c66;
+        color: #f09a82;
     }
     """
 
@@ -118,25 +204,36 @@ class ChatApp(App):
         self.last_context = ""
 
     def compose(self) -> ComposeResult:
+        with Horizontal(id="masthead"):
+            yield Static("[#7ab8b0]brain[/#7ab8b0] chat", id="brand")
+            yield Static("model pending", id="model-pill", classes="status-pill")
+            yield Static("retrieval on", id="rag-pill", classes="status-pill")
         yield VerticalScroll(id="chat-view")
-        yield Input(placeholder="Message... (/help for commands)", id="chat-input")
-        yield Footer()
+        with Horizontal(id="chat-input-deck"):
+            yield Input(
+                placeholder="Message your knowledge base...  /help for commands", id="chat-input"
+            )
 
     async def on_mount(self) -> None:
         self.title = "Brain Chat"
-        self.sub_title = f"{self.cfg.chat_model} • {self.cfg.agent.tone}"
+        self.sub_title = f"{self.cfg.chat_model} | {self.cfg.agent.tone}"
+        self.query_one("#model-pill", Static).update(f"model {self.cfg.chat_model}")
+        self._sync_rag_status()
         await self._show_welcome()
         self.query_one("#chat-input", Input).focus()
 
+    def _sync_rag_status(self) -> None:
+        state = "on" if self.rag_enabled else "off"
+        self.query_one("#rag-pill", Static).update(f"retrieval {state}")
+
     async def _show_welcome(self) -> None:
         welcome_text = (
-            f"**Welcome to Brain Chat**  \n"
-            f"Model: `{self.cfg.chat_model}`  \n"
-            f"Tone: *{self.cfg.agent.tone}*  \n"
-            f"Goals: *{self.cfg.agent.goals}*  \n\n"
-            f"Type `/help` for commands."
+            f"**Brain Chat is ready.**  \n"
+            f"`{self.cfg.chat_model}` answers in a {self.cfg.agent.tone} tone.  \n"
+            f"{self.cfg.agent.goals}  \n\n"
+            f"`/help` shows commands. `/context` opens the last retrieved citations."
         )
-        await self._add_assistant_message(welcome_text)
+        await self._add_assistant_message(welcome_text, classes="assistant-message welcome-message")
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         message = event.value.strip()
@@ -155,7 +252,7 @@ class ChatApp(App):
 
     async def _add_user_message(self, text: str) -> None:
         chat_view = self.query_one("#chat-view", VerticalScroll)
-        static = Static(text, classes="user-message")
+        static = Static(f"you > {text}", classes="user-message", markup=False)
         await chat_view.mount(static)
         static.scroll_visible()
 
@@ -166,16 +263,18 @@ class ChatApp(App):
         indicator.scroll_visible()
         return indicator
 
-    async def _add_assistant_message(self, text: str) -> Markdown:
+    async def _add_assistant_message(
+        self, text: str, classes: str = "assistant-message"
+    ) -> Markdown:
         chat_view = self.query_one("#chat-view", VerticalScroll)
-        md = Markdown(text, classes="assistant-message")
+        md = Markdown(text, classes=classes)
         await chat_view.mount(md)
         md.scroll_visible()
         return md
 
-    async def _add_system_message(self, text: str) -> None:
+    async def _add_system_message(self, text: str, classes: str = "system-message") -> None:
         chat_view = self.query_one("#chat-view", VerticalScroll)
-        static = Static(text, classes="system-message")
+        static = Static(text, classes=classes, markup=False)
         await chat_view.mount(static)
         static.scroll_visible()
 
@@ -192,7 +291,9 @@ class ChatApp(App):
                 context = self.engine.build_context(results) if results else ""
                 self.last_context = context
             except Exception as e:
-                await self._add_system_message(f"RAG error: {e}")
+                await self._add_system_message(
+                    f"RAG error: {e}", classes="system-message error-message"
+                )
 
         prompt = _build_chat_prompt(message, context, self.history)
         self._stream_response(prompt, indicator, message)
@@ -253,27 +354,33 @@ class ChatApp(App):
             await self._show_welcome()
         elif cmd == "rag on":
             self.rag_enabled = True
-            await self._add_system_message("📚 RAG enabled")
+            self._sync_rag_status()
+            await self._add_system_message(
+                "Retrieval enabled", classes="system-message success-message"
+            )
         elif cmd == "rag off":
             self.rag_enabled = False
-            await self._add_system_message("📚 RAG disabled")
+            self._sync_rag_status()
+            await self._add_system_message("Retrieval disabled")
         elif cmd == "context":
             await self._add_assistant_message(
                 self.last_context or "_No context retrieved for the last answer._"
             )
         elif cmd == "help":
             help_text = (
-                "**Commands:**  \n"
-                "`/quit` — Exit chat  \n"
-                "`/clear` — Clear history  \n"
-                "`/rag on` — Enable document retrieval  \n"
-                "`/rag off` — Disable document retrieval  \n"
-                "`/context` — Show last retrieved citations  \n"
-                "`/help` — Show this help"
+                "**Commands**  \n"
+                "`/quit` - Exit chat  \n"
+                "`/clear` - Clear the screen  \n"
+                "`/rag on` - Enable document retrieval  \n"
+                "`/rag off` - Disable document retrieval  \n"
+                "`/context` - Show last retrieved citations  \n"
+                "`/help` - Show this help"
             )
             await self._add_assistant_message(help_text)
         else:
-            await self._add_system_message(f"❓ Unknown command: `{message}`")
+            await self._add_system_message(
+                f"Unknown command: {message}", classes="system-message error-message"
+            )
 
 
 def run_chat() -> None:
