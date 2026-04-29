@@ -17,6 +17,7 @@ def test_query_engine_accepts_llm_parameter():
     engine = QueryEngine(
         store=mock_store,
         llm=mock_llm,
+        embedder=mock_llm,
         embed_model="nomic-embed-text",
         chat_model="gemma4:e4b",
     )
@@ -31,6 +32,7 @@ def test_query_engine_llm_stored_as_llm_attribute():
     engine = QueryEngine(
         store=MagicMock(),
         llm=mock_llm,
+        embedder=mock_llm,
         embed_model="e",
         chat_model="c",
     )

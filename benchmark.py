@@ -129,8 +129,8 @@ def _worker_main(notes_dir: str, query_expansion: bool) -> None:
     """Ingest notes into a temp DB, run all eval cases, print JSON to stdout."""
     from brain.config import BrainConfig
     from brain.ingest import ingest_document
-    from brain.ollama import OllamaClient
     from brain.parser import ParseError, parse_document
+    from brain.providers import get_provider
     from brain.query import QueryEngine
     from brain.store import BrainStore
 
@@ -142,7 +142,7 @@ def _worker_main(notes_dir: str, query_expansion: bool) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         db_path = str(Path(tmpdir) / "bench.db")
         store = BrainStore(db_path=db_path)
-        ollama = OllamaClient(base_url=cfg.ollama_url)
+        provider = get_provider(cfg)
 
         for md_file in md_files:
             try:
@@ -152,7 +152,7 @@ def _worker_main(notes_dir: str, query_expansion: bool) -> None:
                 ingest_document(
                     doc,
                     store,
-                    ollama,
+                    provider,
                     embed_model=cfg.embed_model,
                     chunk_size=cfg.chunk_size,
                     chunk_overlap=cfg.chunk_overlap,
@@ -170,8 +170,8 @@ def _worker_main(notes_dir: str, query_expansion: bool) -> None:
             # Current signature
             engine = QueryEngine(
                 store=store,
-                llm=ollama,
-                embedder=ollama,
+                llm=provider,
+                embedder=provider,
                 embed_model=cfg.embed_model,
                 chat_model=cfg.chat_model,
                 fetch_k=cfg.retrieval_fetch_k,
@@ -188,7 +188,8 @@ def _worker_main(notes_dir: str, query_expansion: bool) -> None:
                 # Older signature with max_context_chars and query_expansion
                 engine = QueryEngine(
                     store=store,
-                    ollama=ollama,
+                    llm=provider,
+                    embedder=provider,
                     embed_model=cfg.embed_model,
                     chat_model=cfg.chat_model,
                     fetch_k=cfg.retrieval_fetch_k,
@@ -204,7 +205,8 @@ def _worker_main(notes_dir: str, query_expansion: bool) -> None:
                 # Oldest signature without query_expansion
                 engine = QueryEngine(
                     store=store,
-                    ollama=ollama,
+                    llm=provider,
+                    embedder=provider,
                     embed_model=cfg.embed_model,
                     chat_model=cfg.chat_model,
                     fetch_k=cfg.retrieval_fetch_k,

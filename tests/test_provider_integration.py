@@ -68,6 +68,7 @@ def test_ollama_driver_retrieve_and_ask(monkeypatch):
     engine = QueryEngine(
         store=_fake_store(),
         llm=provider,
+        embedder=provider,
         embed_model=cfg.embed_model,
         chat_model=cfg.chat_model,
     )
@@ -128,6 +129,7 @@ def test_litellm_driver_retrieve_and_ask():
         engine = QueryEngine(
             store=_fake_store(),
             llm=provider,
+            embedder=provider,
             embed_model="openai/text-embedding-3-small",
             chat_model=cfg.chat_model,
         )
@@ -152,6 +154,7 @@ def test_litellm_driver_ask_passes_system_prompt():
         engine = QueryEngine(
             store=_fake_store(),
             llm=provider,
+            embedder=provider,
             embed_model="openai/text-embedding-3-small",
             chat_model=cfg.chat_model,
             system_prompt="be concise",
@@ -214,6 +217,7 @@ def test_openai_compat_driver_retrieve_and_ask():
         engine = QueryEngine(
             store=_fake_store(),
             llm=provider,
+            embedder=provider,
             embed_model="text-embedding-3-small",
             chat_model=cfg.chat_model,
         )
@@ -238,6 +242,7 @@ def test_openai_compat_driver_ask_passes_system_prompt():
         engine = QueryEngine(
             store=_fake_store(),
             llm=provider,
+            embedder=provider,
             embed_model="text-embedding-3-small",
             chat_model=cfg.chat_model,
             system_prompt="be concise",

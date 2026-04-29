@@ -3,6 +3,7 @@ from pathlib import Path
 from brain.config import BrainConfig
 from brain.ingest import ingest_document
 from brain.parser import ParseError, parse_document
+from brain.providers import get_provider
 from brain.routines.events import emit
 from brain.store import BrainStore
 

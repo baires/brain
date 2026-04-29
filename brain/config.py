@@ -45,7 +45,7 @@ class BrainConfig(BaseModel):
     routines: list[RoutineConfig] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def _migrate_ollama_url(self) -> "BrainConfig":
+    def _migrate_ollama_url(self) -> BrainConfig:
         # Promote a non-default ollama_url into base_url so the Ollama provider
         # reads a single canonical field regardless of which was set.
         if self.base_url is None and self.ollama_url != _OLLAMA_DEFAULT_URL:

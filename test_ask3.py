@@ -1,4 +1,3 @@
-import sys
 from brain.config import BrainConfig
 from brain.store import BrainStore
 

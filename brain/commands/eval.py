@@ -27,7 +27,6 @@ def run_eval(path: str, run_ollama: bool = False) -> None:
 
     run_add(path)
     cfg = BrainConfig.load_from()
-    ollama = OllamaClient(base_url=cfg.ollama_url)
     engine = QueryEngine(
         store=BrainStore(db_path=cfg.db_path),
         llm=get_provider(cfg),
