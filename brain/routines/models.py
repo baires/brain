@@ -50,11 +50,11 @@ class RoutineContext:
             return []
 
         if self._store is None:
-            from brain.providers import get_provider
+            from brain.providers import get_embedder
             from brain.store import BrainStore
 
             self._store = BrainStore(db_path=self.config.db_path)
-            self._ollama = get_provider(self.config)
+            self._ollama = get_embedder(self.config)
 
         embedding = self._ollama.embed(query, model=self.config.embed_model)
         return self._store.query(embedding, n_results=n_results)

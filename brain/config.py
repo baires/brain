@@ -28,6 +28,10 @@ class BrainConfig(BaseModel):
     ollama_url: str = _OLLAMA_DEFAULT_URL
     chat_model: str = "gemma4:e4b"
     embed_model: str = "nomic-embed-text"
+    # Optional separate provider for embeddings. Falls back to main provider if unset.
+    embed_provider: str | None = None
+    embed_api_key: str | None = None
+    embed_base_url: str | None = None
     db_path: str = Field(default_factory=lambda: str(Path.home() / ".brain" / "brain.db"))
     chunk_size: int = 512
     chunk_overlap: int = 50

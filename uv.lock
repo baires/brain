@@ -326,6 +326,7 @@ dependencies = [
     { name = "cryptography" },
     { name = "fpdf2" },
     { name = "keyring" },
+    { name = "litellm" },
     { name = "pydantic" },
     { name = "pyyaml" },
     { name = "requests" },
@@ -339,11 +340,7 @@ dependencies = [
 
 [package.optional-dependencies]
 all = [
-    { name = "litellm" },
     { name = "openai" },
-]
-litellm = [
-    { name = "litellm" },
 ]
 openai = [
     { name = "openai" },
@@ -367,8 +364,7 @@ requires-dist = [
     { name = "cryptography" },
     { name = "fpdf2" },
     { name = "keyring" },
-    { name = "litellm", marker = "extra == 'all'" },
-    { name = "litellm", marker = "extra == 'litellm'" },
+    { name = "litellm" },
     { name = "openai", marker = "extra == 'all'" },
     { name = "openai", marker = "extra == 'openai'" },
     { name = "pydantic", specifier = ">=2" },
@@ -381,7 +377,7 @@ requires-dist = [
     { name = "typer" },
     { name = "watchdog" },
 ]
-provides-extras = ["litellm", "openai", "all"]
+provides-extras = ["openai", "all"]
 
 [package.metadata.requires-dev]
 dev = [

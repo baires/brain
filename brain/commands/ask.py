@@ -6,7 +6,7 @@ from rich.markdown import Markdown
 from rich.status import Status
 
 from brain.config import BrainConfig
-from brain.providers import get_provider
+from brain.providers import get_embedder, get_provider
 from brain.query import QueryEngine
 from brain.store import BrainStore
 
@@ -53,7 +53,7 @@ def run_ask(
     engine = QueryEngine(
         store=store,
         llm=llm,
-        embedder=llm,
+        embedder=get_embedder(cfg),
         embed_model=cfg.embed_model,
         chat_model=cfg.chat_model,
         fetch_k=cfg.retrieval_fetch_k,

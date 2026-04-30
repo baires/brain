@@ -6,7 +6,7 @@ from textual.widgets import Input, LoadingIndicator, Markdown, Static
 
 from brain.config import BrainConfig
 from brain.prompts import ANSWER_INSTRUCTIONS
-from brain.providers import get_provider
+from brain.providers import get_embedder, get_provider
 from brain.query import QueryEngine
 from brain.store import BrainStore
 
@@ -186,7 +186,7 @@ class ChatApp(App):
         self.engine = QueryEngine(
             store=self.store,
             llm=self.llm,
-            embedder=self.llm,
+            embedder=get_embedder(cfg),
             embed_model=cfg.embed_model,
             chat_model=cfg.chat_model,
             fetch_k=cfg.retrieval_fetch_k,

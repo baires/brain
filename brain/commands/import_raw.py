@@ -4,7 +4,7 @@ from brain.config import BrainConfig
 from brain.ingest import ingest_document
 from brain.parser import ParseError, parse_document
 from brain.prompts import STRUCTURE_TRANSCRIPT_SYSTEM_PROMPT, build_structure_transcript_prompt
-from brain.providers import get_provider
+from brain.providers import get_embedder, get_provider
 from brain.providers.base import LLMProvider
 from brain.store import BrainStore
 
@@ -81,6 +81,7 @@ def run_import_raw(
     cfg = BrainConfig.load_from()
     store = BrainStore(db_path=cfg.db_path)
     llm = get_provider(cfg)
+    embedder = get_embedder(cfg)
 
     if structure:
         wrapped = _structure_raw_markdown(
@@ -112,7 +113,7 @@ def run_import_raw(
     chunk_count = ingest_document(
         doc,
         store,
-        llm,
+        embedder,
         embed_model=cfg.embed_model,
         chunk_size=cfg.chunk_size,
         chunk_overlap=cfg.chunk_overlap,

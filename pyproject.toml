@@ -23,12 +23,12 @@ dependencies = [
     "tomli-w>=1.2.0",
     "croniter",
     "fpdf2",
+    "litellm",
 ]
 
 [project.optional-dependencies]
-litellm = ["litellm"]
 openai = ["openai"]
-all = ["litellm", "openai"]
+all = ["openai"]
 
 [dependency-groups]
 dev = [
