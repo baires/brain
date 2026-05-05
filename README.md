@@ -152,6 +152,64 @@ tone = "helpful and concise"
 goals = "Help the user retrieve information from their knowledge base"
 ```
 
+## LLM Providers
+
+Brain uses Ollama by default (no extra config needed). To switch to a cloud provider, set `provider` and optionally `api_key` / `base_url` in `~/.brain/config.toml`.
+
+Install the optional dependency first:
+
+```bash
+uv add brain[litellm]   # for OpenAI, Anthropic, Gemini, OpenRouter, Kimi, 100+ others
+uv add brain[openai]    # for OpenAI-compatible endpoints (lighter alternative)
+```
+
+### OpenAI
+
+```toml
+provider = "litellm"
+api_key = "sk-..."
+chat_model = "openai/gpt-4o"
+embed_model = "openai/text-embedding-3-small"
+```
+
+### Anthropic
+
+```toml
+provider = "litellm"
+api_key = "sk-ant-..."
+chat_model = "anthropic/claude-sonnet-4"
+```
+
+### OpenRouter
+
+```toml
+provider = "litellm"
+base_url = "https://openrouter.ai/api/v1"
+api_key = "sk-or-..."
+chat_model = "openrouter/anthropic/claude-sonnet-4"
+embed_model = "openrouter/openai/text-embedding-3-small"
+```
+
+### Kimi (Moonshot)
+
+```toml
+provider = "litellm"
+api_key = "sk-..."
+chat_model = "kimi/k2.5"
+embed_model = "kimi/moonshot-v1-embedding"
+```
+
+### Local Ollama via OpenAI-compatible endpoint
+
+```toml
+provider = "openai_compat"
+base_url = "http://localhost:11434/v1"
+chat_model = "llama3.1"
+embed_model = "nomic-embed-text"
+```
+
+> **Note:** `api_key` also falls back to standard environment variables (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.) when not set in the config file.
+
 ## Answers & Citations
 
 Brain is precision-first by default. It retrieves more candidates than it uses, filters weak matches, diversifies near-duplicate chunks, and sends only the strongest context to the local model.

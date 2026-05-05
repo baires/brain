@@ -2,7 +2,7 @@ from pathlib import Path
 
 from brain.commands.add import run_add
 from brain.config import BrainConfig
-from brain.ollama import OllamaClient
+from brain.providers import get_embedder, get_provider
 from brain.query import QueryEngine
 from brain.store import BrainStore
 
@@ -27,11 +27,10 @@ def run_eval(path: str, run_ollama: bool = False) -> None:
 
     run_add(path)
     cfg = BrainConfig.load_from()
-    ollama = OllamaClient(base_url=cfg.ollama_url)
     engine = QueryEngine(
         store=BrainStore(db_path=cfg.db_path),
-        llm=ollama,
-        embedder=ollama,
+        llm=get_provider(cfg),
+        embedder=get_embedder(cfg),
         embed_model=cfg.embed_model,
         chat_model=cfg.chat_model,
         fetch_k=cfg.retrieval_fetch_k,

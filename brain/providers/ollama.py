@@ -3,14 +3,10 @@ from collections.abc import Generator
 
 import requests
 
-from brain.providers.base import EmbeddingProvider, LLMProvider
+from brain.providers.base import ProviderError
 
 
-class OllamaError(Exception):
-    pass
-
-
-class OllamaClient(EmbeddingProvider, LLMProvider):
+class OllamaProvider:
     def __init__(self, base_url: str = "http://localhost:11434"):
         self.base_url = base_url.rstrip("/")
 
@@ -20,14 +16,13 @@ class OllamaClient(EmbeddingProvider, LLMProvider):
         try:
             resp = requests.post(url, json=payload)
             resp.raise_for_status()
-            data = resp.json()
-            return data.get("embedding", [])
+            return resp.json().get("embedding", [])
         except requests.exceptions.ConnectionError as e:
-            raise OllamaError(
+            raise ProviderError(
                 f"Ollama not reachable at {self.base_url}. Start it with: ollama serve"
             ) from e
         except requests.exceptions.RequestException as e:
-            raise OllamaError(f"Ollama request failed: {e}") from e
+            raise ProviderError(f"Ollama request failed: {e}") from e
 
     def chat(
         self,
@@ -54,8 +49,8 @@ class OllamaClient(EmbeddingProvider, LLMProvider):
                 if "response" in data:
                     yield data["response"]
         except requests.exceptions.ConnectionError as e:
-            raise OllamaError(
+            raise ProviderError(
                 f"Ollama not reachable at {self.base_url}. Start it with: ollama serve"
             ) from e
         except requests.exceptions.RequestException as e:
-            raise OllamaError(f"Ollama request failed: {e}") from e
+            raise ProviderError(f"Ollama request failed: {e}") from e

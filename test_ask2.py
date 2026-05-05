@@ -1,16 +1,15 @@
-import sys
 from brain.config import BrainConfig
-from brain.ollama import OllamaClient
+from brain.providers import get_provider
 from brain.query import QueryEngine
 from brain.store import BrainStore
 
 cfg = BrainConfig.load_from()
 store = BrainStore(db_path=cfg.db_path)
-ollama = OllamaClient(base_url=cfg.ollama_url)
+provider = get_provider(cfg)
 engine = QueryEngine(
     store=store,
-    llm=ollama,
-    embedder=ollama,
+    llm=provider,
+    embedder=provider,
     embed_model=cfg.embed_model,
     chat_model=cfg.chat_model,
     fetch_k=cfg.retrieval_fetch_k,
@@ -25,7 +24,7 @@ engine = QueryEngine(
 
 raw = store.query(
     embedding=engine.embedder.embed("What is Marcus blocked on?", model=engine.embed_model),
-    n_results=10
+    n_results=10,
 )
 for i in range(len(raw)):
     print(raw[i]["distance"], raw[i]["metadata"]["source_path"], raw[i]["text"][:50])

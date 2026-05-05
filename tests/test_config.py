@@ -27,6 +27,7 @@ def test_config_loads_from_toml():
             f.write('ollama_url = "http://other:11434"\nchat_model = "llama3"\nchunk_size = 1024\n')
         cfg = BrainConfig.load_from(config_path)
         assert cfg.ollama_url == "http://other:11434"
+        assert cfg.base_url == "http://other:11434"  # migration alias
         assert cfg.chat_model == "llama3"
         assert cfg.embed_model == "nomic-embed-text"  # default
         assert cfg.chunk_size == 1024

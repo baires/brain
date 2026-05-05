@@ -4,7 +4,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
-from brain.ollama import OllamaClient, OllamaError
+from brain.providers.base import ProviderError as OllamaError
+from brain.providers.ollama import OllamaProvider as OllamaClient
 
 
 def test_embed_returns_vector():

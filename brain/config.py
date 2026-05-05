@@ -4,7 +4,7 @@ from pathlib import Path
 
 import tomli
 import tomli_w
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from brain.prompts import DEFAULT_SYSTEM_PROMPT
 
@@ -17,10 +17,21 @@ class AgentConfig(BaseModel):
     goals: str = "Help the user retrieve information from their knowledge base"
 
 
+_OLLAMA_DEFAULT_URL = "http://localhost:11434"
+
+
 class BrainConfig(BaseModel):
-    ollama_url: str = "http://localhost:11434"
+    provider: str = "ollama"
+    api_key: str | None = None
+    base_url: str | None = None
+    # Deprecated: use base_url. Kept so existing config.toml files keep working.
+    ollama_url: str = _OLLAMA_DEFAULT_URL
     chat_model: str = "gemma4:e4b"
     embed_model: str = "nomic-embed-text"
+    # Optional separate provider for embeddings. Falls back to main provider if unset.
+    embed_provider: str | None = None
+    embed_api_key: str | None = None
+    embed_base_url: str | None = None
     db_path: str = Field(default_factory=lambda: str(Path.home() / ".brain" / "brain.db"))
     chunk_size: int = 512
     chunk_overlap: int = 50
@@ -36,6 +47,14 @@ class BrainConfig(BaseModel):
     backup_daily: bool = True
     agent: AgentConfig = Field(default_factory=AgentConfig)
     routines: list[RoutineConfig] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _migrate_ollama_url(self) -> BrainConfig:
+        # Promote a non-default ollama_url into base_url so the Ollama provider
+        # reads a single canonical field regardless of which was set.
+        if self.base_url is None and self.ollama_url != _OLLAMA_DEFAULT_URL:
+            self.base_url = self.ollama_url
+        return self
 
     @classmethod
     def load_from(cls, path: str | Path | None = None) -> BrainConfig:

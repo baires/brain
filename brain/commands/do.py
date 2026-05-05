@@ -6,7 +6,7 @@ from typing import Any
 import typer
 
 from brain.config import BrainConfig
-from brain.ollama import OllamaClient
+from brain.providers import get_embedder, get_provider
 from brain.query import QueryEngine
 from brain.routines.models import RoutineContext
 from brain.routines.registry import get_action
@@ -45,11 +45,11 @@ def _find_defaults(action_name: str, cfg: BrainConfig) -> dict[str, Any]:
 
 def _ask_brain(question: str, cfg: BrainConfig) -> str:
     store = BrainStore(db_path=cfg.db_path)
-    ollama = OllamaClient(base_url=cfg.ollama_url)
+    provider = get_provider(cfg)
     engine = QueryEngine(
         store=store,
-        llm=ollama,
-        embedder=ollama,
+        llm=provider,
+        embedder=get_embedder(cfg),
         embed_model=cfg.embed_model,
         chat_model=cfg.chat_model,
         fetch_k=cfg.retrieval_fetch_k,

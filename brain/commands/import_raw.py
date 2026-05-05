@@ -2,9 +2,10 @@ from pathlib import Path
 
 from brain.config import BrainConfig
 from brain.ingest import ingest_document
-from brain.ollama import OllamaClient
 from brain.parser import ParseError, parse_document
 from brain.prompts import STRUCTURE_TRANSCRIPT_SYSTEM_PROMPT, build_structure_transcript_prompt
+from brain.providers import get_embedder, get_provider
+from brain.providers.base import LLMProvider
 from brain.store import BrainStore
 
 
@@ -39,7 +40,7 @@ def _structure_raw_markdown(
     doc_type: str,
     tags: list[str] | None,
     author: str | None,
-    ollama: OllamaClient,
+    llm: LLMProvider,
     chat_model: str,
 ) -> str:
     prompt = build_structure_transcript_prompt(
@@ -51,7 +52,7 @@ def _structure_raw_markdown(
         raw_text=raw_text,
     )
     structured = "".join(
-        ollama.chat(
+        llm.chat(
             prompt=prompt,
             model=chat_model,
             system=STRUCTURE_TRANSCRIPT_SYSTEM_PROMPT,
@@ -79,7 +80,8 @@ def run_import_raw(
     raw_text = Path(path).read_text(encoding="utf-8")
     cfg = BrainConfig.load_from()
     store = BrainStore(db_path=cfg.db_path)
-    ollama = OllamaClient(base_url=cfg.ollama_url)
+    llm = get_provider(cfg)
+    embedder = get_embedder(cfg)
 
     if structure:
         wrapped = _structure_raw_markdown(
@@ -89,7 +91,7 @@ def run_import_raw(
             doc_type=doc_type,
             tags=tags,
             author=author,
-            ollama=ollama,
+            llm=llm,
             chat_model=cfg.chat_model,
         )
         print("Structured raw transcript with local model.")
@@ -111,7 +113,7 @@ def run_import_raw(
     chunk_count = ingest_document(
         doc,
         store,
-        ollama,
+        embedder,
         embed_model=cfg.embed_model,
         chunk_size=cfg.chunk_size,
         chunk_overlap=cfg.chunk_overlap,

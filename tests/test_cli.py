@@ -12,7 +12,6 @@ runner = CliRunner()
 def test_init_creates_config_dir():
     with tempfile.TemporaryDirectory() as tmpdir:
         config_dir = os.path.join(tmpdir, ".brain")
-        # Monkeypatch the default config path for the test
         import brain.commands.init as init_mod
 
         orig_path = init_mod.DEFAULT_CONFIG_DIR
@@ -75,28 +74,27 @@ This is a test note.
         config_mod.DEFAULT_CONFIG_PATH = Path(os.path.join(brain_dir, "config.toml"))
         init_mod.DEFAULT_CONFIG_DIR = Path(brain_dir)
         try:
-            # init first
             result = runner.invoke(app, ["init"])
             assert result.exit_code == 0
-            # mock ollama to avoid real calls
+
             import brain.commands.add as add_mod
 
-            orig_client = add_mod.OllamaClient
+            orig_provider = add_mod.get_provider
 
-            class FakeClient:
-                def __init__(self, *a, **k):
-                    pass
-
+            class _FakeProvider:
                 def embed(self, text, model):
                     return [0.1] * 384
 
-            add_mod.OllamaClient = FakeClient
+                def chat(self, prompt, model, system=None):
+                    yield ""
+
+            add_mod.get_provider = lambda cfg: _FakeProvider()
             try:
                 result = runner.invoke(app, ["add", md_path])
                 assert result.exit_code == 0, result.output
                 assert "Ingested" in result.output or "1 file" in result.output
             finally:
-                add_mod.OllamaClient = orig_client
+                add_mod.get_provider = orig_provider
         finally:
             config_mod.DEFAULT_CONFIG_PATH = orig_config_path
             init_mod.DEFAULT_CONFIG_DIR = orig_config_dir
@@ -110,7 +108,6 @@ def test_status_prints_info():
 
         orig_default = config_mod.DEFAULT_CONFIG_PATH
         config_mod.DEFAULT_CONFIG_PATH = Path(os.path.join(tmpdir, ".brain", "config.toml"))
-        # Also patch init so init writes to the right place
         import brain.commands.init as init_mod
 
         orig_init_dir = init_mod.DEFAULT_CONFIG_DIR
@@ -182,11 +179,9 @@ def test_backup_create_and_list():
             db_path = Path(brain_dir) / "brain.db"
             db_path.mkdir()
             (db_path / "chroma.sqlite3").write_text("fake")
-            # Point backup path into temp dir
             config_toml = Path(brain_dir) / "config.toml"
             with open(config_toml, "a") as f:
                 f.write(f'backup_path = "{brain_dir}/backups"\n')
-            # Mock backup key to avoid keyring
             orig_get_key = backup_mod.get_or_create_backup_key
             backup_mod.get_or_create_backup_key = lambda: (
                 b"JF3bfm6rkRTH8lTWEkQJEG6djZHOGsil2uhdbkcmglo=",
@@ -241,7 +236,6 @@ def test_backup_restore():
                 backup_file = result.output.split("Backup created: ")[1].strip()
                 assert brain_dir in backup_file
 
-                # Modify DB
                 (db_path / "extra.txt").write_text("extra")
 
                 result = runner.invoke(app, ["backup", "--restore", backup_file])
@@ -266,17 +260,14 @@ def test_ask_last_filter_and_show_context():
 
         orig_default = config_mod.DEFAULT_CONFIG_PATH
         orig_init_dir = init_mod.DEFAULT_CONFIG_DIR
-        orig_add_client = add_mod.OllamaClient
-        orig_ask_client = ask_mod.OllamaClient
+        orig_add_provider = add_mod.get_provider
+        orig_ask_provider = ask_mod.get_provider
         orig_today = ask_mod._today
         brain_dir = os.path.join(tmpdir, ".brain")
         config_mod.DEFAULT_CONFIG_PATH = Path(os.path.join(brain_dir, "config.toml"))
         init_mod.DEFAULT_CONFIG_DIR = Path(brain_dir)
 
-        class FakeClient:
-            def __init__(self, *a, **k):
-                pass
-
+        class _FakeProvider:
             def embed(self, text, model):
                 if "meeting" in text.lower():
                     return [0.9] * 384
@@ -285,11 +276,10 @@ def test_ask_last_filter_and_show_context():
             def chat(self, prompt, model, system=None):
                 yield "Use the recent meeting [1]."
 
-        add_mod.OllamaClient = FakeClient
-        ask_mod.OllamaClient = FakeClient
+        add_mod.get_provider = lambda cfg: _FakeProvider()
+        ask_mod.get_provider = lambda cfg: _FakeProvider()
         ask_mod._today = lambda: date(2026, 4, 27)
 
-        # Disable auto-backup to avoid polluting real backup dir
         import brain.cli as cli_mod
 
         orig_maybe_backup = cli_mod._maybe_auto_backup
@@ -328,7 +318,7 @@ Recent meeting note.
         finally:
             config_mod.DEFAULT_CONFIG_PATH = orig_default
             init_mod.DEFAULT_CONFIG_DIR = orig_init_dir
-            add_mod.OllamaClient = orig_add_client
-            ask_mod.OllamaClient = orig_ask_client
+            add_mod.get_provider = orig_add_provider
+            ask_mod.get_provider = orig_ask_provider
             ask_mod._today = orig_today
             cli_mod._maybe_auto_backup = orig_maybe_backup

@@ -19,9 +19,6 @@ class LLMProvider(abc.ABC):
 class RerankerProvider(abc.ABC):
     @abc.abstractmethod
     def rerank(self, query: str, texts: list[str], top_n: int | None = None) -> list[dict]:
-        """
-        Return a list of dicts with 'index' (original index in texts) and 'score', sorted by score descending.
-        """
         pass
 
 
@@ -29,3 +26,7 @@ class TokenizerProvider(abc.ABC):
     @abc.abstractmethod
     def count_tokens(self, text: str) -> int:
         pass
+
+
+class ProviderError(Exception):
+    """Unified exception raised by all providers."""
